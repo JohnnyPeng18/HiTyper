@@ -40,11 +40,17 @@ pip install .
 
 **Requirements:**
 
-HiTyper requires running under Python >= 3.9 because there is a lot of new nodes introduced on AST from Python 3.9. 
+HiTyper requires running under Python >= 3.9 because there are a lot of new nodes introduced on AST from Python 3.9. 
 
 However, HiTyper can analyze most files written under Python 3 since Python's AST is backward compatible.
 
 Note that currently HiTyper is only tested on Linux.
+
+You are recommended to use `Anaconda` to create a clean Python 3.9 environment and avoid most dependency conflicts:
+
+````sh
+conda create -n hityper python=3.9
+````
 
 ## Usage
 
