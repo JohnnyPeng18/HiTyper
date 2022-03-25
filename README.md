@@ -40,11 +40,10 @@ pip install .
 
 **Requirements:**
 
-HiTyper requires running under Python >= 3.9 because there are a lot of new nodes introduced on AST from Python 3.9. 
+- Python>=3.9
+- Linux
 
-However, HiTyper can analyze most files written under Python 3 since Python's AST is backward compatible.
-
-Note that currently HiTyper is only tested on Linux.
+HiTyper requires running under Python >= 3.9 because there are a lot of new nodes introduced on AST from Python 3.9. However, HiTyper can analyze most files written under Python 3 since Python's AST is backward compatible.
 
 You are recommended to use `Anaconda` to create a clean Python 3.9 environment and avoid most dependency conflicts:
 
@@ -54,7 +53,7 @@ conda create -n hityper python=3.9
 
 ## Usage
 
-Currently HiTyper has the following command line options:
+Currently HiTyper has the following command line options: (Some important settings are stored in file `config.py`, you may need to modify it before running HiTyper)
 
 ### findusertype
 
@@ -77,7 +76,7 @@ optional arguments:
 hityper findusertype -s python_project_repo/test.py -p python_project_repo -v -d outputs
 ```
 
-*This command will generates the user-defined types collected by HiTyper and save them as `.json` files under `outputs/` folder.*
+*This command generates the user-defined types collected by HiTyper and save them as `.json` files under `outputs/` folder.*
 
 ### gentdg
 
@@ -108,7 +107,7 @@ hityper gentdg -s python_project_repo/test.py -p python_project_repo -d outputs 
 
 *This command generates the TDG for all functions in file `python_project_repo/test.py` and save them into `outputs` folder.* 
 
-Note that if you choose `json` format to save TDG, it will be only one `json` file that contains all TDGs in the source file. However, if you choose `pdf` format to save TDG, then it will be multiple `pdf` files and each one correspond to one function in the source file.
+Note that if you choose `json` format to save TDG, it will be only ONE `json` file that contains all TDGs in the source file. However, if you choose `pdf` format to save TDG, then there will be multiple `pdf` files and each one correspond to one function in the source file. This is because a pdf file can hardly contain a large TDG for every functions.
 
 HiTyper uses [PyCG](https://github.com/vitsalis/PyCG) to build call graphs in call analysis. Alias analysis and call analysis are temporarily built-in but HiTyper does not use them in inference. Further updates about them will be involved in HiTyper. 
 
@@ -140,7 +139,9 @@ hityper infer -s python_project_repo/test.py -p python_project_repo -d outputs -
 
 *This command generates the inferred types for all variables, arguments and return values in the source file and save them into `output` folder.*
 
-If you do not specify `-m` or `-t` option, then HiTyper will only use the static inference part to infer types. Static inference part generally takes several minutes to finish the inference.
+If you do not specify `-m` or `-t` option, then HiTyper will only use the static inference part to infer types. Static inference generally takes several minutes.
+
+**Recommendation Model:**
 
 Note that HiTyper natively supports the recommendations from Type4Py and it invokes the following API provided by Type4Py to get recommendations if you use option `-t`:
 
@@ -154,7 +155,9 @@ https://type4py.com/api/predict?tc=0
 http://localhost:PORT/api/predict?tc=0
 ```
 
-**HiTyper's performance deeply depends on the maximum performance of recommendation model (especially the performance to predict argument types)**, so if you want to use another more powerful model, you can modify the code in `__main__.py`.
+**HiTyper's performance deeply depends on the maximum performance of recommendation model (especially the performance to predict argument types)** 
+
+If you want to use another more powerful model, you write code like `__main__.py` to adapt HiTyper to your DL model.
 
 ### eval
 
@@ -183,17 +186,21 @@ hityper eval -g groundtruth.json -c detailed_groundtruth.json -u usertypes.json 
 
 *This command evaluates the performance of HiTyper on a pre-defined groundtruth dataset. It will output similar results like stated in `Experiment Results` part.*
 
-Before evaluate Hityper using this command, please use `hityper findusertype` command to generate `usertypes.json`. This typically takes several hours depending on the number of files. This process will take much longer than the inference process.
+Before evaluating Hityper using this command, please use `hityper findusertype` command to generate `usertypes.json`. This typically takes several hours, depending on the number of files.
 
-This option is designed only for future research and shall not be used under development environment.
+This option is designed only for future research evaluation.
 
 ## Experiment Results
+
+**Dataset:**
 
 The following results are evaluated using the [ManyTypes4Py](https://zenodo.org/record/4719447#.YjxcpBNBxb8) dataset. 
 
 Since the original dataset does not contain Python source files, to facilitate future research, we here also attached a [link](https://drive.google.com/file/d/1HdZyd3dKAUkiv2Nl0Zynp_YhrqU6HfMx/view?usp=sharing) for the Python source files HiTyper uses to infer types. Attached dataset is not identical with the original one because the original one contains some GitHub repos that do not allow open access or have been deleted.
 
 Note that as stated in the paper, there exists few cases (such as subtypes and same types with different names) that HiTyper should be correct but still counted as wrong in the evaluation process.
+
+**Metrics:**
 
 For the definition of metrics used here, please also refer to the paper. These metrics can be regarded as a kind of "recall", which evaluates the coverage of HiTyper on a specific dataset. We do not show the "precision" here as HiTyper only outputs results when it does not observe any violations with current typing rules and TDG.
 
@@ -269,7 +276,7 @@ If you want the exact experiment results stated in the paper, please download th
 ## Todo
 
 - Add supports for inter-procedural analysis
-- Add supports for types from third-party libs
+- Add supports for types from third-party modules
 - Add supports for external function calls
 - Add supports for stub files
 
