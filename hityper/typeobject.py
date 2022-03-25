@@ -600,6 +600,7 @@ class TypeObject(object):
             obj.keytype.append(TypeObject.load(i))
         for i in dictobj["valuetype"]:
             obj.valuetype.append(TypeObject.load(i))
+        return obj
 
 
         
