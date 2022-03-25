@@ -100,7 +100,7 @@ optional arguments:
 hityper gentdg -s python_project_repo/test.py -p python_project_repo -d outputs -f json -o
 ```
 
-*This command will generates the TDG for all functions in file `python_project_repo/test.py` and save them into `outputs` folder.* 
+*This command generates the TDG for all functions in file `python_project_repo/test.py` and save them into `outputs` folder.* 
 
 Note that if you choose `json` format to save TDG, it will be only one `json` file that contains all TDGs in the source file. However, if you choose `pdf` format to save TDG, then it will be multiple `pdf` files and each one correspond to one function in the source file.
 
@@ -132,7 +132,7 @@ optional arguments:
 hityper infer -s python_project_repo/test.py -p python_project_repo -d outputs -n 1 -t 
 ```
 
-*This command will generates the inferred types for all variables, arguments and return values in the source file and save them into `output` folder.*
+*This command generates the inferred types for all variables, arguments and return values in the source file and save them into `output` folder.*
 
 If you do not specify `-m` or `-t` option, then HiTyper will only use the static inference part to infer types. Static inference part generally takes several minutes to finish the inference.
 
@@ -175,7 +175,7 @@ optional arguments:
 hityper eval -g groundtruth.json -c detailed_groundtruth.json -u usertypes.json -n 1 -t
 ```
 
-*This command evaluate the performance of HiTyper on a pre-defined groundtruth dataset. It will output similar results like stated in `Experiment Results` part.*
+*This command evaluates the performance of HiTyper on a pre-defined groundtruth dataset. It will output similar results like stated in `Experiment Results` part.*
 
 Before evaluate Hityper using this command, please use `hityper findusertype` command to generate `usertypes.json`. This typically takes several hours depending on the number of files. This process will take much longer than the inference process.
 
@@ -193,14 +193,14 @@ For the definition of metrics used here, please also refer to the paper. These m
 
 **Only using the static inference part:**
 
-| Category           | Exact Match | Match to Parametric | Patial Match |
-| ------------------ | ----------- | ------------------- | ------------ |
-| Simple Types       | 59.00%      | 59.47%              | 62.15%       |
-| Generic Types      | 55.50%      | 69.68%              | 71.90%       |
-| User-defined Types | 40.40%      | 40.40%              | 44.30%       |
-| Arguments          | 7.65%       | 8.05%               | 14.39%       |
-| Return Values      | 58.71%      | 64.61%              | 69.06%       |
-| Local Variables    | 61.56%      | 65.66%              | 67.05%       |
+| Category           | Exact Match | Match to Parametric | Partial Match |
+| ------------------ | ----------- | ------------------- | ------------- |
+| Simple Types       | 59.00%      | 59.47%              | 62.15%        |
+| Generic Types      | 55.50%      | 69.68%              | 71.90%        |
+| User-defined Types | 40.40%      | 40.40%              | 44.30%        |
+| Arguments          | 7.65%       | 8.05%               | 14.39%        |
+| Return Values      | 58.71%      | 64.61%              | 69.06%        |
+| Local Variables    | 61.56%      | 65.66%              | 67.05%        |
 
 You can use the following command to reproduce the above results:
 
@@ -210,14 +210,14 @@ hityper eval -g ManyTypes4Py_gts_test_verified.json -c ManyTypes4Py_gts_test_ver
 
 **Using Type4Py's top 1 predictions as recommendations:**
 
-| Category           | Exact Match | Match to Parametric | Patial Match |
-| ------------------ | ----------- | ------------------- | ------------ |
-| Simple Types       | 67.20%      | 68.00%              | 69.80%       |
-| Generic Types      | 56.37%      | 71.05%              | 72.54%       |
-| User-defined Types | 40.42%      | 40.42%              | 43.82%       |
-| Arguments          | 22.36%      | 23.67%              | 27.56%       |
-| Return Values      | 59.11%      | 64.98%              | 69.30%       |
-| Local Variables    | 64.47%      | 68.78%              | 69.72%       |
+| Category           | Exact Match | Match to Parametric | Partial Match |
+| ------------------ | ----------- | ------------------- | ------------- |
+| Simple Types       | 67.20%      | 68.00%              | 69.80%        |
+| Generic Types      | 56.37%      | 71.05%              | 72.54%        |
+| User-defined Types | 40.42%      | 40.42%              | 43.82%        |
+| Arguments          | 22.36%      | 23.67%              | 27.56%        |
+| Return Values      | 59.11%      | 64.98%              | 69.30%        |
+| Local Variables    | 64.47%      | 68.78%              | 69.72%        |
 
 You can use the following command to reproduce the above results:
 
@@ -227,14 +227,14 @@ hityper eval -g ManyTypes4Py_gts_test_verified.json -c ManyTypes4Py_gts_test_ver
 
 **Using Type4Py's top 10 predictions as recommendations:**
 
-| Category           | Exact Match | Match to Parametric | Patial Match |
-| ------------------ | ----------- | ------------------- | ------------ |
-| Simple Types       | 68.94%      | 69.64%              | 71.23%       |
-| Generic Types      | 57.29%      | 72.31%              | 73.68%       |
-| User-defined Types | 40.43%      | 40.43%              | 43.67%       |
-| Arguments          | 25.90%      | 27.30%              | 30.64%       |
-| Return Values      | 59.35%      | 65.25%              | 69.54%       |
-| Local Variables    | 65.21%      | 69.53%              | 70.37%       |
+| Category           | Exact Match | Match to Parametric | Partial Match |
+| ------------------ | ----------- | ------------------- | ------------- |
+| Simple Types       | 68.94%      | 69.64%              | 71.23%        |
+| Generic Types      | 57.29%      | 72.31%              | 73.68%        |
+| User-defined Types | 40.43%      | 40.43%              | 43.67%        |
+| Arguments          | 25.90%      | 27.30%              | 30.64%        |
+| Return Values      | 59.35%      | 65.25%              | 69.54%        |
+| Local Variables    | 65.21%      | 69.53%              | 70.37%        |
 
 You can use the following command to reproduce the above results:
 
