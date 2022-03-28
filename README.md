@@ -31,7 +31,7 @@ To use HiTyper on your own computer, you can simply type:
 pip install hityper
 ```
 
-or build from source:
+or build from source: (If you need to modify the source code of HiTyper, please use this method and re-run the `pip install .` after modification each time)
 
 ```sh
 git clone https://github.com/JohnnyPeng18/HiTyper.git && cd HiTyper
