@@ -1924,8 +1924,12 @@ class GlobalTypeGraph(object):
         f.render(filename=filename,view=False)
 
 
-    def drawAliasGraph(self):
-        f = Digraph("Alias Graph", filename = "/research/dept7/ypeng/prompt/Prompt4Type/graphviz_figs/" + self.name.split("/")[-1] + "_AliasGraph", format = "png")
+    def drawAliasGraph(self, filerepo = None):
+        if filerepo != None:
+            filename = filerepo + "/" + self.name.split("/")[-1] + "_AliasGraph"
+        else:
+            filename = self.name.split("/")[-1] + "_AliasGraph"
+        f = Digraph("Alias Graph", filename = filename, format = "png")
 
         f.attr("node", shape = "ellipse")
         for n in self.aliasgraph.nodes:
@@ -1944,7 +1948,7 @@ class GlobalTypeGraph(object):
                     f.edge(self.resolveName(n), self.resolveName(outn))
                     aliasedges.append([self.resolveName(n), self.resolveName(outn)])
 
-        f.render(directory='/research/dept7/ypeng/prompt/Prompt4Type/graphviz_figs/')
+        f.render(filename = filename, view = False)
 
     
     def _dump(self, item):

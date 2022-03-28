@@ -248,10 +248,10 @@ def test_onefile(gtfile, filename, gts = None, gentg = False, usertypes = None, 
     if len(gt) == 0:
         logger.error("Cannot find groundtruth types of this file.")
         return None
-    if not os.path.exists("/data/project/ypeng/hityper/" + filename):
+    if not os.path.exists(filename):
         logger.error("File does not exist.")
         return None
-    source = open("/data/project/ypeng/hityper/" + filename, "r", encoding='UTF-8').read()
+    source = open(filename, "r", encoding='UTF-8').read()
     root = ast.parse(source)
     if isinstance(usertypes, dict) and filename in usertypes:
         usertype = usertypes[filename]
