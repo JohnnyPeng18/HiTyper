@@ -315,7 +315,7 @@ class UsertypeFinder(object):
         else:
             source = open(path, "r").read()
             root = ast.parse(source)
-            a = analyzer(path, "/".join(repopaths), self.validate)
+            a = UsertypeFinder(path, "/".join(repopaths), self.validate)
             types, _ = a.run(root)
             return types
             

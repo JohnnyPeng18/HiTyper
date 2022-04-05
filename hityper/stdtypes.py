@@ -4,6 +4,47 @@ builtins = [
 "int", "float", "complex", "bool", "list", "tuple", "range", "str", "bytes", "bytearray", "memoryview", "set", "frozenset", "dict", "dict_keys", "dict_values", "dict_items", "None"
 ]
 
+ops = [
+"+", "-", "*", "/", "//", "%", "<<", ">>", "|", "^", "&", "@", "not", "~", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"
+]
+
+method2op = {
+    "__add__": "+",
+    "__sub__": "-",
+    "__mul__": "*",
+    "__truediv__": "/",
+    "__floordiv__": "//",
+    "__mod__": "%",
+    "__pow__": "**",
+    "__lshift__": "<<",
+    "__rshift__": ">>",
+    "__and__": "&",
+    "__or__": "|",
+    "__xor__": "^",
+    "__lt__": "<",
+    "__gt__": ">",
+    "__le__": "<=",
+    "__ge__": ">=",
+    "__eq__": "==",
+    "__ne__": "!=",
+    "__neg__": "-",
+    "__pos__": "+",
+    "__invert__": "~",
+    "__isub__": "-",
+    "__iadd__": "+",
+    "__imul__": "*",
+    "__idiv__": "/",
+    "__ifloordiv__": "//",
+    "__imod__": "%",
+    "__ipow__": "**",
+    "__ilshift__": "<<",
+    "__irshift__": ">>",
+    "__iand__": "&",
+    "__ior__": "|",
+    "__ixor__": "^",
+    "__iter__": "in"
+}
+
 
 #The following functions will not be automatcally inferred using the type templates in builtin_method, HiTyper has explicit rules to handle them in typerule.py
 builtin_method_properties = {
@@ -92,6 +133,56 @@ builtin4user_method = {
     "next": "__next__",
     "repr": "__repr__",
     "str": "__str__"
+}
+
+
+builtin_op = {
+    "left": {
+        "int": ["+", "-", "*", "/", "//", "%", "<<", ">>", "|", "^", "&", "not", "~", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "float": ["+", "-", "*", "/", "//", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "complex": ["+", "-", "*", "/", "not", "and", "or", "==", "!=", "is", "is not", "in", "not in" ],
+        "bool": ["+", "-", "*", "/", "//", "%", "<<", ">>", "|", "^", "&", "not", "~", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "list": ["+", "*", "not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "tuple": ["+", "*", "not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "range": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "str": ["+", "*", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "bytes": ["+", "*", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "bytearray": ["+", "*", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "memoryview": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "set": ["not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "fronzeset": ["not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "dict": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "dict_keys": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "dict_values": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "dict_items": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "None": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "Generator": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "Iterable": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "Callable": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"]
+    },
+    "right": {
+        "int": ["+", "-", "*", "/", "//", "%", "<<", ">>", "|", "^", "&", "not", "~", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not"],
+        "float": ["+", "-", "*", "/", "//", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not"],
+        "complex": ["+", "-", "*", "/", "not", "and", "or", "==", "!=", "is", "is not"],
+        "bool": ["+", "-", "*", "/", "//", "%", "<<", ">>", "|", "^", "&", "not", "~", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not"],
+        "list": ["+", "*", "not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "tuple": ["+", "*", "not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "range": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "str": ["+", "*", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "bytes": ["+", "*", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "bytearray": ["+", "*", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "memoryview": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "set": ["not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "fronzeset": ["not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "dict": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "dict_keys": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "dict_values": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "dict_items": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "None": ["not", "and", "or", "==", "!=", "is", "is not"],
+        "Generator": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "Iterable": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
+        "Callable": ["not", "and", "or", "==", "!=", "is", "is not"]
+    }
 }
 
 #functions with dynamic features are not included
@@ -359,6 +450,19 @@ builtin_method = {
         "setdefault": [[("key", "Any")], "dict"],
         "update": [[("other", "dict")], [("other", "@iterable@")], "dict"],
         "values": [[], "dict_values[List[@valuetype@]]"]
+    },
+    "Generator": {
+        "__iter__": [],
+        "__next__": [],
+        "send": [],
+        "throw": [],
+        "close": []
+    },
+    "Iterable": {
+        "__iter__": []
+    },
+    "Callable": {
+        "__call__": []
     }
 
 }
@@ -396,6 +500,7 @@ collections_abc_module = [
 "AsyncIterable", "AsyncIterator", "AsyncGenerator"
 ]
 
+
 #The standard errors are extracted from https://docs.python.org/zh-cn/3/library/exceptions.html
 errors = [
 "BaseException", "Exception", "ArithmeticError", "BufferError", "LookupError", "AssertionError", "AttributeError", "EOFError", "GeneratorExit", "ImportError",
@@ -420,6 +525,8 @@ stdtypes = {
     "builtins": builtins,
     "errors": errors,
     "warnings": warnings,
+    "generic": ["list", "tuple", "set", "frozenset", "dict", "Pattern", "Match", "Generator", "Callable", "Iterable"],
+    "simple": ["int", "float", "complex", "bool", "str", "bytes", "bytearray", "memoryview", "None", "Exception", "Warning", "Any"],
     "overall": typing_module + builtins + collections_module + collections_abc_module + errors + warnings
 }
 
@@ -465,15 +572,21 @@ for i in exporttypemap:
         for j in stdtypes["typing"]:
             typestr = "typing." + j
             if typestr.lower() not in inputtypemap:
-                inputtypemap[typestr.lower()] = j 
+                inputtypemap[typestr.lower()] = j
+            if  j.lower() not in inputtypemap:
+                inputtypemap[j.lower()] = j
         for j in stdtypes["collections"]:
             typestr = "collections." + j
             if typestr.lower() not in inputtypemap:
                 inputtypemap[typestr.lower()] = j 
+            if  j.lower() not in inputtypemap:
+                inputtypemap[j.lower()] = j
         for j in stdtypes["collections_abc"]:
             typestr = "collections_abc." + j
             if typestr.lower() not in inputtypemap:
                 inputtypemap[typestr.lower()] = j 
+            if  j.lower() not in inputtypemap:
+                inputtypemap[j.lower()] = j
 
 
 
