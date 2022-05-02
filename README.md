@@ -221,47 +221,9 @@ You can use the following command to reproduce the above results:
 hityper eval -g ManyTypes4Py_gts_test_verified.json -c ManyTypes4Py_gts_test_verified_detailed.json -u ManyTypes4Py_test_usertypes.json 
 ```
 
-**Using Type4Py's top 1 predictions as recommendations:**
-
-| Category           | Exact Match | Match to Parametric | Partial Match |
-| ------------------ | ----------- | ------------------- | ------------- |
-| Simple Types       | 67.20%      | 68.00%              | 69.80%        |
-| Generic Types      | 56.37%      | 71.05%              | 72.54%        |
-| User-defined Types | 40.42%      | 40.42%              | 43.82%        |
-| Arguments          | 22.36%      | 23.67%              | 27.56%        |
-| Return Values      | 59.11%      | 64.98%              | 69.30%        |
-| Local Variables    | 64.47%      | 68.78%              | 69.72%        |
-
-You can use the following command to reproduce the above results:
-
-```sh
-hityper eval -g ManyTypes4Py_gts_test_verified.json -c ManyTypes4Py_gts_test_verified_detailed.json -u ManyTypes4Py_test_usertypes.json -t -n 1
-```
-
-**Using Type4Py's top 10 predictions as recommendations:**
-
-| Category           | Exact Match | Match to Parametric | Partial Match |
-| ------------------ | ----------- | ------------------- | ------------- |
-| Simple Types       | 68.94%      | 69.64%              | 71.23%        |
-| Generic Types      | 57.29%      | 72.31%              | 73.68%        |
-| User-defined Types | 40.43%      | 40.43%              | 43.67%        |
-| Arguments          | 25.90%      | 27.30%              | 30.64%        |
-| Return Values      | 59.35%      | 65.25%              | 69.54%        |
-| Local Variables    | 65.21%      | 69.53%              | 70.37%        |
-
-You can use the following command to reproduce the above results:
-
-```sh
-hityper eval -g ManyTypes4Py_gts_test_verified.json -c ManyTypes4Py_gts_test_verified_detailed.json -u ManyTypes4Py_test_usertypes.json -t -n 10
-```
-
-The improvement brought by Type4Py currently is not very significant because:
-
-1) Type4Py cannot give recommendations for many hot types given by HiTyper
-
-2) Type4Py maintains low performance on predicting "rare types", which are mostly user-defined types
-
-We are currently working on building a DL model that's more suitable for HiTyper. Stay tuned!
+We do not show the performance of HiTyper integrating different DL models here since there are many factors impacting the performance of DL models such as datasets, hyper-parameters, etc. Please align the performance by yourself before utilizing recommendations from DL models.
+ 
+What's more, we are currently working on building a DL model that's more suitable for HiTyper. Stay tuned!
 
 **Other datasets:**
 

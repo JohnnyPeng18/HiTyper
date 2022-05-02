@@ -94,7 +94,12 @@ class TypeObject(object):
     @staticmethod
     def existSame( l, listr):
         for r in listr:
-            if TypeObject.isIdentical(l,r):
+            if isinstance(r, str):
+                if r.startswith("<") and r.endswith(">"):
+                    continue
+                if TypeObject.isSimilar(l, TypeObject(r,0)):
+                    return True
+            elif TypeObject.isIdentical(l, r):
                 return True
         return False
 
@@ -108,7 +113,9 @@ class TypeObject(object):
     @staticmethod
     def findSame(l, listr):
         for r in listr:
-            if TypeObject.isIdentical(l,r):
+            if isinstance(r, str) and TypeObject.isSimilar(l, TypeObject(r,0)):
+                return r
+            elif isinstance(r, TypeObject) and TypeObject.isIdentical(l,r):
                 return r
         return None
 
@@ -152,6 +159,22 @@ class TypeObject(object):
     
     @staticmethod
     def isIdenticalSet( llist, rlist):
+        
+        invalidtypes = []
+        for l in llist:
+            if not isinstance(l, TypeObject):
+                invalidtypes.append(l)
+        for r in rlist:
+            if not isinstance(r, TypeObject):
+                invalidtypes.append(r)
+        
+        for t in invalidtypes:
+            if t in llist:
+                llist.remove(t)
+        for t in invalidtypes:
+            if t in rlist:
+                rlist.remove(t)
+        
         for l in llist:
             if l.type.lower() == "any":
                 return True
@@ -320,6 +343,24 @@ class TypeObject(object):
                 outs.remove(target)
         return outs
 
+    @staticmethod
+    def removeInvalidTypes(t):
+        if isinstance(t, TypeObject):
+            elementtype = []
+            for tt in t.elementtype:
+                if isinstance(tt, TypeObject):
+                    elementtype.append(TypeObject.removeInvalidTypes(tt))
+            t.elementtype = elementtype
+            keytype = []
+            for tt in t.keytype:
+                if isinstance(tt, TypeObject):
+                    keytype.append(TypeObject.removeInvalidTypes(tt))
+            t.keytype = keytype
+            valuetype = []
+            for tt in t.valuetype:
+                if isinstance(tt, TypeObject):
+                    valuetype.append(TypeObject.removeInvalidTypes(tt))
+            return t
 
     def __str__(self):
         return TypeObject.resolveTypeName(self)
@@ -328,12 +369,13 @@ class TypeObject(object):
     @staticmethod
     def resolveTypeName(t):
         if isinstance(t, TypeObject):
+            t = TypeObject.removeInvalidTypes(t)
             if t.category != 0:
                 return t.type
             elif t.type.lower() not in exporttypemap:
                 raise TypeError("Unknown type: " + t.type)
             typestr = exporttypemap[t.type.lower()]
-            if t.type in ["Dict", "Callable"]:
+            if t.type.lower() in ["dict", "callable"]:
                 typestr = typestr + "["
                 if len(t.keytype) == 0:
                     typestr += ", "
@@ -356,7 +398,7 @@ class TypeObject(object):
                     typestr = typestr[:-1]
                     typestr += "]"
                 typestr += "]"
-            elif t.type in ["Set", "Tuple", "List", "Awaitable", "Iterable", "Sequence", "Generator"]:
+            elif t.type.lower() in ["set", "tuple", "list", "awaitable", "iterable", "sequence", "generator"]:
                 typestr = typestr + "["
                 if len(t.elementtype) == 1:
                     typestr = typestr + TypeObject.resolveTypeName(t.elementtype[0])
@@ -373,7 +415,7 @@ class TypeObject(object):
                     typestr = typestr[:-1]
                     typestr += "]"
                 typestr += "]"
-            elif t.type == "Optional":
+            elif t.type.lower() == "optional":
                 typestr += "["
                 if len(t.elementtype) > 1:
                     typestr += "typing.Union["
@@ -385,7 +427,7 @@ class TypeObject(object):
                     typestr = typestr + TypeObject.resolveTypeName(t.elementtype[0]) + "]"
                 else:
                     typestr += "]"
-            elif t.type == "Union":
+            elif t.type.lower() == "union":
                 typestr += "["
                 if len(t.elementtype) == 0:
                     typestr += "]"

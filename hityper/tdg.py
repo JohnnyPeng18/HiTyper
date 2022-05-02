@@ -32,6 +32,7 @@ class GraphBaseNode(object):
         self.tg = None
         self.rejtypes = []
         self.nodeid = "Not Assigned"
+        self.tag = 0
 
         #visitlabel: 0 - this node is never visited
         #1 - state of input node of this node is not determined, move to queue and wait
@@ -158,6 +159,10 @@ class SymbolNode(GraphBaseNode):
 
         #indicate whether the type set changes or not during last operation
         self.change = False
+    
+    def cleartypes(self):
+        self.types = []
+
 
     def addTypes(self, t, tag, independent_op = True):
         if independent_op:
@@ -269,6 +274,11 @@ class TypeGenNode(GraphBaseNode):
                 return False
         return True
 
+    def cleartypes(self):
+        self.rejinputtypes = []
+        self.types = []
+
+
     def performTypingRules(self, usertype = None, iterable=False):
         # if it's not about ierable or it's call -> format(which may cause more than 3 input nodes)
         #if not iterable and not(self.op == "call" and (self.func in call_overargu_funcs)):
@@ -306,7 +316,8 @@ class TypeGenNode(GraphBaseNode):
                             norej = False
                         if i < len(self.ins):
                             for t in n:
-                                if t.added and t not in self.ins[i].rejtypes:
+                                if t not in self.ins[i].rejtypes and t.category != 2 and not isinstance(self.ins[i], TypeNode):
+                                    logger.info(f"Reject {TypeObject.resolveTypeName(t)} for node {self.ins[i].name} in op {self.op}.")
                                     self.ins[i].rejtypes.append(t)
             else:
                 raise ValueError("outputs should have at least 3 elements.")
@@ -326,7 +337,8 @@ class TypeGenNode(GraphBaseNode):
                             norej = False
                         if i < len(self.ins):
                             for t in n:
-                                if t.added and t not in self.ins[i].rejtypes:
+                                if t not in self.ins[i].rejtypest not in self.ins[i].rejtypes and t.category != 2 and not isinstance(self.ins[i], TypeNode):
+                                    logger.info(f"Reject {TypeObject.resolveTypeName(t)} for node {self.ins[i].name} in op {self.op}.")
                                     self.ins[i].rejtypes.append(t)
         return norej
 
@@ -464,6 +476,11 @@ class BranchNode(GraphBaseNode):
     
     def addTypes(self, types):
         self.outtypes = types
+    
+    def cleartypes(self):
+        self.outtypes = []
+        self.types = [[], []]
+        self.rejtypes = [[], []]
 
     def splitTypes(self):
         if len(self.ins) != 1:
@@ -485,6 +502,9 @@ class BranchNode(GraphBaseNode):
                     self.types.append([t])
                 else:
                     self.types.append(TypeObject.removeInclusiveTypes(types))
+            if len(self.types) < 2:
+                for i in range(0, 2 - len(self.types)):
+                    self.types.append([])
     
     def dump(self):
         node = self._dump()
@@ -559,6 +579,9 @@ class MergeNode(GraphBaseNode):
         super(MergeNode, self).__init__(ins, outs, "merge")
         self.nodetype = "Merge"
         self.mergevar = var
+        self.types = []
+
+    def cleartypes(self):
         self.types = []
 
     def dump(self):
@@ -795,16 +818,221 @@ class TypeGraph(object):
         return returntype
 
 
+    def getDefPath(self, end, iteration, prev_nodes):
+        if len(end.ins) == 0:
+            return [[end]]
+        elif isinstance(end, TypeGenNode) and end.op == "call":
+            return [[end]]
+        elif iteration > config["max_tdg_iteration"]:
+            return []
+        else:
+            subpaths = []
+            for o in end.ins:
+                if o in prev_nodes:
+                    continue
+                if isinstance(o, SymbolNode) and o.scope != "local":
+                    continue
+                subpath = self.getDefPath(o, iteration + 1, prev_nodes + [end])
+                if len(subpath) != 0:
+                    subpaths += subpath
+            if len(subpaths) == 0:
+                return []
+            else:
+                paths = []
+                for p in subpaths:
+                    paths.append(p + [end])
+                return paths
 
+
+    def getDefPaths(self, node):
+        prevbranches = 0
+        nodeid = int(node.nodeid.split("@")[-1])
+        for n in self.branchnodes:
+            if int(n.nodeid.split("@")[-1]) < nodeid:
+                prevbranches += 1
+        for n in self.mergenodes:
+            if int(n.nodeid.split("@")[-1]) < nodeid:
+                prevbranches += 1
+        if prevbranches >= 15:
+            logger.warning("Too many branches before this variable, skipping to avoid path explosion...")
+            return []
+        paths = self.getDefPath(node, 0, [])
+        return paths
+
+
+    def getUsage(self, name):
+        if name not in self.symbolnodes:
+            return None, None
+        else:
+            ops = []
+            symbols = []
+            nodes = self.symbolnodes[name]
+            for n in nodes:
+                for on in n.outs:
+                    if isinstance(on, TypeGenNode) and on.op not in ops:
+                        if on.op == "call" and on.func != None:
+                            ops.append(on.op + "_" + on.func)
+                        else:
+                            ops.append(on.op)
+                            
+                    elif isinstance(on, SymbolNode) and on.symbol not in symbols:
+                        symbols.append(on.symbol)
+        return ops, symbols
+
+    def getNextEmptySymbolNodes(self, node):
+        queue = node.outs
+        visited = []
+        nodes = []
+        while(len(queue) != 0):
+            q = queue[0]
+            queue = queue[1:]
+            if isinstance(q, SymbolNode) and len(q.types) == 0:
+                nodes.append(q)
+            elif q not in visited:
+                queue += q.outs
+            visited.append(q)
+        
+        return nodes
+
+
+    def clearFlowTypes(self):
+        for n in self.nodes:
+            if n.tag == 3:
+                n.cleartypes()
+    
+    def clearAllTypes(self):
+        for n in self.nodes:
+            if not isinstance(n, TypeNode):
+                n.cleartypes()
         
 
+
+
+    def getTypeConlfictNum(self):
+        changed = True
+        iters = 0
+
+        inconsistences = []
+
+        while(changed and iters < config["max_tdg_iteration"]):
+
+            changed = False
+
+            queue = self.getNoInputNodes()
+
+            iters += 1
+            self.clearVisitLabel()
+            inneriter = 0
+            while(len(queue) != 0 and inneriter < 1000):
+                inneriter += 1
+                curnode = queue[0]
+                queue.pop(0)
+                curnode.visitlabel = 2
+
+                for n in curnode.ins:
+                    if n.visitlabel < 2:
+                        curnode.visitlabel = 1
+                        if curnode not in queue:
+                            queue.append(curnode)
+
+                if curnode.visitlabel == 2:
+                    if isinstance(curnode, SymbolNode):
+                        if len(curnode.ins) > 1:
+                            logger.error("[Static Inference] Symbol node should not have more than 1 input nodes.")
+                            raise ValueError("Symbol node should not have more than 1 input nodes.")
+                        else:
+                            for n in curnode.ins:
+                                if curnode.tag != 1 and curnode.tag != 4:
+                                    curnode.tag = 3
+                                    if not isinstance(n, BranchNode) and not TypeObject.isIdenticalSet(n.types, curnode.types):
+                                        changed = True
+                                        curnode.types = copy(n.types)
+                                    elif isinstance(n, BranchNode) and not TypeObject.isIdenticalSet(n.types[n.outs.index(curnode)], curnode.types):
+                                        changed = True
+                                        curnode.types = copy(n.types[n.outs.index(curnode)])
+                                elif not isinstance(n, BranchNode) and  not TypeObject.isSetIncluded(curnode.types, n.types) and len(n.types) != 0:
+                                    if [curnode, n] not in inconsistences:
+                                        inconsistences.append([curnode, n])
+                                    logger.info(f"inconsistence of {curnode.name}, {n.lineno}; previous node {n.name}, {n.lineno}: current - {TypeObject.resolveTypeNames(curnode.types)} previous node - {TypeObject.resolveTypeNames(n.types)}")
+                                    #logger.warning("[Static Inference] The types of " + curnode.name + " is statically added as: {" + TypeObject.resolveTypeNames(curnode.types) + "}" + "However, the types of input node are: {" +TypeObject.resolveTypeNames(n.types) + "}")
+                                elif isinstance(n, BranchNode) and not TypeObject.isSetIncluded(curnode.types, n.types[n.outs.index(curnode)]) and len(n.types[n.outs.index(curnode)]) != 0:
+                                    if [curnode, n] not in inconsistences:
+                                        inconsistences.append([curnode, n])
+                                    logger.info(f"inconsistence of {curnode.name}, {n.lineno}; previous node {n.name}, {n.lineno}: current - {TypeObject.resolveTypeNames(curnode.types)} previous node - {TypeObject.resolveTypeNames(n.types)}")
+                                    #logger.warning("[Static Inference] The types of " + curnode.name + " is statically added as: {" + TypeObject.resolveTypeNames(curnode.types) + "}" + "However, the types of input node are: {" +TypeObject.resolveTypeNames(n.types[n.outs.index(curnode)]) + "}")
+                    elif isinstance(curnode, TypeGenNode):
+                        curnode.tag = 3
+                        prev_types = deepcopy(curnode.types)
+                        if curnode.op == "call" and not curnode.performTypingRules(usertype = self.usertypes):
+                            logger.info("[Static Inference] Node: " + curnode.name + " at Line: " + str(curnode.lineno) + "reject some types.")
+                            logger.info("Current {} nodes have rejected types.".format(len(self.getNodewithRejTypes())))
+                        elif curnode.op not in ["List_Read", "List_Write", "Set_Read", "Dict_Read", "Tuple_Read", "Tuple_Write", "JoinedStr"] and not curnode.performTypingRules(usertype = self.usertypes):
+                            logger.info("[Static Inference] Node: " + curnode.name + " at Line: " + str(curnode.lineno) + "reject some types.")
+                            logger.info("Current {} nodes have rejected types.".format(len(self.getNodewithRejTypes())))
+                            #TODO:changed = True
+                        elif curnode.op in ["List_Read", "List_Write", "Set_Read", "Dict_Read", "Tuple_Read", "Tuple_Write", "JoinedStr"] and not curnode.performTypingRules(usertype = self.usertypes, iterable = True):
+                            logger.info("[Static Inference] Node: " + curnode.name + " at Line: " + str(curnode.lineno) + "reject some types.")
+                            logger.info("Current {} nodes have rejected types.".format(len(self.getNodewithRejTypes())))
+                            #TODO:changed = True
+                        curnode.types = curnode.types
+                        if not TypeObject.isIdenticalSet(prev_types, curnode.types):
+                            #logger.info("[Static Inference] Node: " + curnode.name + " at Line: " + str(curnode.lineno) + "reject some types.")
+                            #logger.info("Current {} nodes have rejected types.".format(len(self.getNodewithRejTypes())))
+                            changed = True
+                    elif isinstance(curnode, TypeNode):
+                        pass
+                    elif isinstance(curnode, MergeNode):
+                        curnode.tag = 3
+                        prev_types = deepcopy(curnode.types)
+                        curnode.types = []
+                        for n in curnode.ins:
+                            if not isinstance(n, BranchNode):
+                                for t in n.types:
+                                    if not TypeObject.existSame(t, curnode.types):
+                                        curnode.types.append(t)
+                            else:
+                                for t in n.types[n.outs.index(curnode)]:
+                                    if not TypeObject.existSame(t, curnode.types):
+                                        curnode.types.append(t)
+                        curnode.types = curnode.types
+                        if not TypeObject.isIdenticalSet(prev_types, curnode.types):
+                            logger.debug("[Static Inference] Node: " + curnode.name + " at Line: " + str(curnode.lineno) + "changed.")
+                            changed = True
+                    elif isinstance(curnode, BranchNode):
+                        curnode.tag = 3
+                        prev_types = deepcopy(curnode.types)
+                        curnode.splitTypes()
+                        if not TypeObject.isIdenticalSet(prev_types[0], curnode.types[0]) or not TypeObject.isIdenticalSet(prev_types[1], curnode.types[1]):
+                            logger.debug("[Static Inference] Node: " + curnode.name + " at Line: " + str(curnode.lineno) + "changed.")
+                            changed = True
+
+                for n in curnode.outs:
+                    if n == "PlaceHolder":
+                        continue
+                    elif n.visitlabel == 0:
+                        n.visitlabel = 1
+                        queue.append(n)
+                        if isinstance(n, TypeGenNode) and n.name == "call":
+                            logger.debug("[Static Inference] Add node: " + n.name + n.func + " at Line: " + str(n.lineno))
+                        else:
+                            logger.debug("[Static Inference] Add node: " + n.name + " at Line: " + str(n.lineno))
+                    #this indicate a loop occurs
+                    elif n.visitlabel == 1:
+                        pass
+                    elif n.visitlabel == 2:
+                        if isinstance(n, TypeGenNode) and n.name == "call":
+                            logger.debug("[Static Inference] Node: " + n.name + n.func +  " at Line: " + str(n.lineno) +" has been finalized.")
+                        else:
+                            logger.debug("[Static Inference] Node: " + n.name +  " at Line: " + str(n.lineno) +" has been finalized.")
+
+        queue = self.getNodewithRejTypes()
+        return len(queue), len(inconsistences)
 
 
 
 
     def passTypes(self, debug = False):
 
-        #print message
         logger.info("[Static Inference] Start iterating TDG " + self.name)
 
 
@@ -1630,6 +1858,14 @@ class GlobalTypeGraph(object):
             if len(n.ins) == 0 and n not in noinputnodes:
                 noinputnodes.append(n)
         return noinputnodes
+    
+    def getEmptySymbols(self):
+        emptysymbols = []
+        for key in self.globalsymbols:
+            for n in self.globalsymbols[key]:
+                if len(n.types) == 0:
+                    emptysymbols.append(n)
+        return emptysymbols
 
     def clearVisitLabel(self):
         for n in self.globalnodes:
@@ -1643,6 +1879,212 @@ class GlobalTypeGraph(object):
             elif isinstance(n, BranchNode) and (len(n.rejtypes[0]) != 0 or len(n.rejtypes[1]) != 0):
                 nodes.append(n)
         return nodes
+
+    def getDefPath(self, end, iteration, prev_nodes):
+        if len(end.ins) == 0:
+            return [[end]]
+        elif iteration > config["max_tdg_iteration"]:
+            return []
+        else:
+            subpaths = []
+            for o in end.ins:
+                if o in prev_nodes:
+                    continue
+                subpath = self.getDefPath(o, iteration + 1, prev_nodes + [end])
+                if len(subpath) != 0:
+                    subpaths += subpath
+            if len(subpaths) == 0:
+                return []
+            else:
+                paths = []
+                for p in subpaths:
+                    paths.append(p + [end])
+                return paths
+
+
+    def getDefPaths(self, node):
+        paths = self.getDefPath(node, 0, [])
+        return paths
+
+
+    def getAliasUsage(self, name, scope):
+        node = self.aliasgraph.searchNode(name, scope)
+        if node != None:
+            attrs = []
+            for n in node.outs:
+                attrs.append(n.name)
+            for n in node.alias:
+                attrs.append(n.name)
+            return attrs
+        return None
+
+    def getUsage(self, name):
+        if name not in self.globalsymbols:
+            return None, None
+        else:
+            ops = []
+            symbols = []
+            nodes = self.globalsymbols[name]
+            for n in nodes:
+                for on in n.outs:
+                    if isinstance(on, TypeGenNode) and on.op not in ops:
+                        if on.op == "call" and on.func != None:
+                            ops.append(on.op + "_" + on.func)
+                        else:
+                            ops.append(on.op)
+                    elif isinstance(on, SymbolNode) and on.symbol not in symbols:
+                        symbols.append(on.symbol)
+        return ops, symbols
+
+    def getNextEmptySymbolNodes(self, node):
+        queue = node.outs
+        visited = []
+        nodes = []
+        while(len(queue) != 0):
+            q = queue[0]
+            queue = queue[1:]
+            if isinstance(q, SymbolNode) and len(q.types) == 0:
+                nodes.append(q)
+            elif q not in visited:
+                queue += q.outs
+            visited.append(q)
+        
+        return nodes
+
+    def clearFlowTypes(self):
+        for n in self.globalnodes:
+            if n.tag == 3:
+                n.cleartypes()
+
+    def clearAllTypes(self):
+        for n in self.globalnodes:
+            if not isinstance(n, TypeNode):
+                n.cleartypes()
+
+
+    
+    def getTypeConlfictNum(self):
+        changed = True
+        iters = 0
+
+        inconsistences = []
+
+        while(changed and iters < config["max_tdg_iteration"]):
+
+            changed = False
+
+            queue = self.getNoInputNodes()
+
+            iters += 1
+            self.clearVisitLabel()
+            inneriter = 0
+            while(len(queue) != 0 and inneriter < 1000):
+                inneriter += 1
+                curnode = queue[0]
+                queue.pop(0)
+                curnode.visitlabel = 2
+
+                for n in curnode.ins:
+                    if n.visitlabel < 2:
+                        curnode.visitlabel = 1
+                        if curnode not in queue:
+                            queue.append(curnode)
+
+                if curnode.visitlabel == 2:
+                    if isinstance(curnode, SymbolNode):
+                        if len(curnode.ins) > 1:
+                            logger.error("[Static Inference] Symbol node should not have more than 1 input nodes.")
+                            raise ValueError("Symbol node should not have more than 1 input nodes.")
+                        else:
+                            for n in curnode.ins:
+                                if curnode.tag != 1 and curnode.tag != 4:
+                                    curnode.tag = 3
+                                    if not isinstance(n, BranchNode) and not TypeObject.isIdenticalSet(n.types, curnode.types):
+                                        changed = True
+                                        curnode.types = copy(n.types)
+                                    elif isinstance(n, BranchNode) and not TypeObject.isIdenticalSet(n.types[n.outs.index(curnode)], curnode.types):
+                                        changed = True
+                                        curnode.types = copy(n.types[n.outs.index(curnode)])
+                                elif not isinstance(n, BranchNode) and  not TypeObject.isSetIncluded(curnode.types, n.types) and len(n.types) != 0:
+                                    if [curnode, n] not in inconsistences:
+                                        inconsistences.append([curnode, n])
+                                    logger.info(f"inconsistence of {curnode.name}, {n.lineno}; previous node {n.name}, {n.lineno}: current - {TypeObject.resolveTypeNames(curnode.types)} previous node - {TypeObject.resolveTypeNames(n.types)}")
+                                    #logger.warning("[Static Inference] The types of " + curnode.name + " is statically added as: {" + TypeObject.resolveTypeNames(curnode.types) + "}" + "However, the types of input node are: {" +TypeObject.resolveTypeNames(n.types) + "}")
+                                elif isinstance(n, BranchNode) and not TypeObject.isSetIncluded(curnode.types, n.types[n.outs.index(curnode)]) and len(n.types[n.outs.index(curnode)]) != 0:
+                                    if [curnode, n] not in inconsistences:
+                                        inconsistences.append([curnode, n])
+                                    logger.info(f"inconsistence of {curnode.name}, {n.lineno}; previous node {n.name}, {n.lineno}: current - {TypeObject.resolveTypeNames(curnode.types)} previous node - {TypeObject.resolveTypeNames(n.types)}")
+                                    #logger.warning("[Static Inference] The types of " + curnode.name + " is statically added as: {" + TypeObject.resolveTypeNames(curnode.types) + "}" + "However, the types of input node are: {" +TypeObject.resolveTypeNames(n.types[n.outs.index(curnode)]) + "}")
+                    elif isinstance(curnode, TypeGenNode):
+                        curnode.tag = 3
+                        prev_types = deepcopy(curnode.types)
+                        if curnode.op == "call" and not curnode.performTypingRules(usertype = self.usertypes):
+                            logger.info("[Static Inference] Node: " + curnode.name + " at Line: " + str(curnode.lineno) + "reject some types.")
+                            logger.info("Current {} nodes have rejected types.".format(len(self.getNodewithRejTypes())))
+                        elif curnode.op not in ["List_Read", "List_Write", "Set_Read", "Dict_Read", "Tuple_Read", "Tuple_Write", "JoinedStr"] and not curnode.performTypingRules(usertype = self.usertypes):
+                            logger.info("[Static Inference] Node: " + curnode.name + " at Line: " + str(curnode.lineno) + "reject some types.")
+                            logger.info("Current {} nodes have rejected types.".format(len(self.getNodewithRejTypes())))
+                            #TODO:changed = True
+                        elif curnode.op in ["List_Read", "List_Write", "Set_Read", "Dict_Read", "Tuple_Read", "Tuple_Write", "JoinedStr"] and not curnode.performTypingRules(usertype = self.usertypes, iterable = True):
+                            logger.info("[Static Inference] Node: " + curnode.name + " at Line: " + str(curnode.lineno) + "reject some types.")
+                            logger.info("Current {} nodes have rejected types.".format(len(self.getNodewithRejTypes())))
+                            #TODO:changed = True
+                        curnode.types = curnode.types
+                        if not TypeObject.isIdenticalSet(prev_types, curnode.types):
+                            #logger.info("[Static Inference] Node: " + curnode.name + " at Line: " + str(curnode.lineno) + "reject some types.")
+                            #logger.info("Current {} nodes have rejected types.".format(len(self.getNodewithRejTypes())))
+                            changed = True
+                    elif isinstance(curnode, TypeNode):
+                        pass
+                    elif isinstance(curnode, MergeNode):
+                        curnode.tag = 3
+                        prev_types = deepcopy(curnode.types)
+                        curnode.types = []
+                        for n in curnode.ins:
+                            if not isinstance(n, BranchNode):
+                                for t in n.types:
+                                    if not TypeObject.existSame(t, curnode.types):
+                                        curnode.types.append(t)
+                            else:
+                                for t in n.types[n.outs.index(curnode)]:
+                                    if not TypeObject.existSame(t, curnode.types):
+                                        curnode.types.append(t)
+                        curnode.types = curnode.types
+                        if not TypeObject.isIdenticalSet(prev_types, curnode.types):
+                            logger.debug("[Static Inference] Node: " + curnode.name + " at Line: " + str(curnode.lineno) + "changed.")
+                            changed = True
+                    elif isinstance(curnode, BranchNode):
+                        curnode.tag = 3
+                        prev_types = deepcopy(curnode.types)
+                        curnode.splitTypes()
+                        if not TypeObject.isIdenticalSet(prev_types[0], curnode.types[0]) or not TypeObject.isIdenticalSet(prev_types[1], curnode.types[1]):
+                            logger.debug("[Static Inference] Node: " + curnode.name + " at Line: " + str(curnode.lineno) + "changed.")
+                            changed = True
+
+                for n in curnode.outs:
+                    if n == "PlaceHolder":
+                        continue
+                    elif n.visitlabel == 0:
+                        n.visitlabel = 1
+                        queue.append(n)
+                        if isinstance(n, TypeGenNode) and n.name == "call":
+                            logger.debug("[Static Inference] Add node: " + n.name + n.func + " at Line: " + str(n.lineno))
+                        else:
+                            logger.debug("[Static Inference] Add node: " + n.name + " at Line: " + str(n.lineno))
+                    #this indicate a loop occurs
+                    elif n.visitlabel == 1:
+                        pass
+                    elif n.visitlabel == 2:
+                        if isinstance(n, TypeGenNode) and n.name == "call":
+                            logger.debug("[Static Inference] Node: " + n.name + n.func +  " at Line: " + str(n.lineno) +" has been finalized.")
+                        else:
+                            logger.debug("[Static Inference] Node: " + n.name +  " at Line: " + str(n.lineno) +" has been finalized.")
+
+        queue = self.getNodewithRejTypes()
+        return len(queue), len(inconsistences)
+
+
+
 
     def passTypes(self, debug = False):
 
@@ -1888,9 +2330,9 @@ class GlobalTypeGraph(object):
 
     def draw(self, filerepo = None):
         if filerepo != None:
-            filename = filerepo + "/" + self.name.replace("/", "_")
+            filename = filerepo + "/" + self.name.replace("/", "_").replace(".py", "_GlobalTDG")
         else:
-            filename = self.name.replace("/", "_")
+            filename = self.name.replace("/", "_").replace(".py", "_GlobalTDG")
         f = Digraph("Type Graph", filename = filename)
 
         #draw symbol node
