@@ -149,7 +149,7 @@ def infertypes(args):
                 if recommendations == None and args.type4py:
                     recommendations = getRecommendations(source)
                 elif isinstance(recommendations, dict) and f in recommendations:
-                            recommendations = recommendations[f]
+                    recommendations = recommendations[f]
                 for tg in global_tg.tgs:
                     if recommendations != None:
                         changed = True

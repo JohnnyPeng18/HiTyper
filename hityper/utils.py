@@ -89,49 +89,49 @@ def getRecommendations(source):
     for c in res["response"]["classes"]:
         rec[c["q_name"]] = {}
         for func in c["funcs"]:
-            rec[c["q_name"]][func["q_name"]] = {"annotations": []}
+            rec[c["q_name"]]["{}.{}".format(c["q_name"], func["q_name"])] = {"annotations": []}
             if "params_p" in func:
                 for p in func["params_p"]:
                     types = []
                     for t in func["params_p"][p]:
                         types.append(t[0])
-                    rec[c["q_name"]][func["q_name"]]["annotations"].append({"category": "arg", "name": p, "type": types})
+                    rec[c["q_name"]]["{}.{}".format(c["q_name"], func["q_name"])]["annotations"].append({"category": "arg", "name": p, "type": types})
                     num += 1
             if "return_type_p" in func:
                 types = []
                 for t in func["return_type_p"]:
                     types.append(t[0])
-                rec[c["q_name"]][func["q_name"]]["annotations"].append({"category": "return", "name": func["q_name"], "type": types})
+                rec[c["q_name"]]["{}.{}".format(c["q_name"], func["q_name"])]["annotations"].append({"category": "return", "name": func["q_name"], "type": types})
                 num += 1
             if "variables_p" in func:
                 for p in func["variables_p"]:
                     types = []
                     for t in func["variables_p"][p]:
                         types.append(t[0])
-                    rec[c["q_name"]][func["q_name"]]["annotations"].append({"category": "local", "name": p, "type": types})
+                    rec[c["q_name"]]["{}.{}".format(c["q_name"], func["q_name"])]["annotations"].append({"category": "local", "name": p, "type": types})
                     num += 1
     rec["global"] = {}
     for func in res["response"]["funcs"]:
-        rec["global"][func["q_name"]] = {"annotations": []}
+        rec["global"]["{}.{}".format("global", func["q_name"])] = {"annotations": []}
         if "params_p" in func:
             for p in func["params_p"]:
                 types = []
                 for t in func["params_p"][p]:
                     types.append(t[0])
-                rec["global"][func["q_name"]]["annotations"].append({"category": "arg", "name": p, "type": types})
+                rec["global"]["{}.{}".format("global", func["q_name"])]["annotations"].append({"category": "arg", "name": p, "type": types})
                 num += 1
         if "return_type_p" in func:
             types = []
             for t in func["return_type_p"]:
                 types.append(t[0])
-            rec["global"][func["q_name"]]["annotations"].append({"category": "return", "name": func["q_name"], "type": types})
+            rec["global"]["{}.{}".format("global", func["q_name"])]["annotations"].append({"category": "return", "name": func["q_name"], "type": types})
             num += 1
         if "variables_p" in func:
             for p in func["variables_p"]:
                 types = []
                 for t in func["variables_p"][p]:
                     types.append(t[0])
-                rec["global"][func["q_name"]]["annotations"].append({"category": "local", "name": p, "type": types})
+                rec["global"]["{}.{}".format("global", func["q_name"])]["annotations"].append({"category": "local", "name": p, "type": types})
                 num += 1
 
     logger.info("Get {} recommendations from Type4Py.".format(num))
