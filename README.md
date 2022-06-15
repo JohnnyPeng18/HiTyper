@@ -103,6 +103,8 @@ hityper gentdg -s python_project_repo/test.py -p python_project_repo -d outputs 
 
 Note that if you choose `json` format to save TDG, it will be only ONE `json` file that contains all TDGs in the source file. However, if you choose `pdf` format to save TDG, then there will be multiple `pdf` files and each one correspond to one function in the source file. This is because a pdf file can hardly contain a large TDG for every functions.
 
+For the location indicated by `-l`, use the format `funcname@classname` and use `global` as the classname if the function is a global function.
+
 HiTyper uses [PyCG](https://github.com/vitsalis/PyCG) to build call graphs in call analysis. Alias analysis and call analysis are temporarily built-in but HiTyper does not use them in inference. Further updates about them will be involved in HiTyper. 
 
 ### infer
@@ -135,6 +137,8 @@ hityper infer -s python_project_repo/test.py -p python_project_repo -d outputs -
 
 If you do not specify `-m` or `-t` option, then HiTyper will only use the static inference part to infer types. Static inference generally takes several minutes.
 
+For the location indicated by `-l`, use the format `funcname@classname` and use `global` as the classname if the function is a global function.
+
 **Recommendation Model:**
 
 Note that HiTyper natively supports the recommendations from Type4Py and it invokes the following API provided by Type4Py to get recommendations if you use option `-t`:
@@ -149,7 +153,7 @@ https://type4py.com/api/predict?tc=0
 http://localhost:PORT/api/predict?tc=0
 ```
 
-**HiTyper's performance deeply depends on the maximum performance of recommendation model (especially the performance to predict argument types)** 
+**HiTyper's performance deeply depends on the maximum performance of recommendation model (especially the performance to predict argument types). Type inference of HiTyper can fail if the recommendation model cannot give a valid prediction while static inference does not work!!!** 
 
 If you want to use another more powerful model, you write code like `__main__.py` to adapt HiTyper to your DL model.
 

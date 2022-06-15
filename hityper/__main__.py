@@ -77,7 +77,7 @@ def gentdg(args):
                 root = ast.parse(source)
                 usertypefinder = UsertypeFinder(args.source, args.repo, True)
                 usertypes, _ = usertypefinder.run(root)
-                generator = TDGGenerator(args.source, args.optimize, args.location, usertypes, alias = 1 if args.alias_analysis else 0, repo = args.repo if args.call_analysis else None)
+                generator = TDGGenerator(args.source, args.optimize, [args.location], usertypes, alias = 1 if args.alias_analysis else 0, repo = args.repo if args.call_analysis else None)
                 global_tg = generator.run(root)
                 if args.output_format == "json":
                     with open(outputrepo + "/" + args.source.replace("/", "_").replace(".py", "_TDG.json"), "w", encoding = "utf-8") as of:
@@ -100,7 +100,7 @@ def gentdg(args):
                         root = ast.parse(source)
                         usertypefinder = UsertypeFinder(f, args.repo, True)
                         usertypes, _ = usertypefinder.run(root)
-                        generator = TDGGenerator(f, args.optimize, args.location, usertypes, alias = 1 if args.alias_analysis else 0, repo = args.repo if args.call_analysis else None)
+                        generator = TDGGenerator(f, args.optimize, [args.location], usertypes, alias = 1 if args.alias_analysis else 0, repo = args.repo if args.call_analysis else None)
                         global_tg = generator.run(root)
                     except Exception as e:
                         traceback.print_exc()
@@ -141,7 +141,7 @@ def infertypes(args):
                 root = ast.parse(source)
                 usertypefinder = UsertypeFinder(args.source, args.repo, True)
                 usertypes, _ = usertypefinder.run(root)
-                generator = TDGGenerator(args.source, True, args.location, usertypes, alias = 0, repo = None)
+                generator = TDGGenerator(args.source, True, [args.location], usertypes, alias = 0, repo = None)
                 global_tg = generator.run(root)
                 str_results = {}
                 global_tg.passTypes(debug = False)
@@ -183,7 +183,7 @@ def infertypes(args):
                         root = ast.parse(source)
                         usertypefinder = UsertypeFinder(f, args.repo, True)
                         usertypes, _ = usertypefinder.run(root)
-                        generator = TDGGenerator(f, True, args.location, usertypes, alias = 0, repo = None)
+                        generator = TDGGenerator(f, True, [args.location], usertypes, alias = 0, repo = None)
                         global_tg = generator.run(root)
                         str_results = {}
                         global_tg.passTypes(debug = False)
