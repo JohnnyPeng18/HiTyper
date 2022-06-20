@@ -81,7 +81,7 @@ def getRecommendations(source):
         logger.error("Error occurs when getting recommendations from Type4Py, reason: {}.".format(e))
         return None
     if not isinstance(res, dict) or res["response"] == None:
-        logger.error("Cannot get recommendations from Type4Py.")
+        logger.error("Type4Py cannot generate predictions for current source file.")
         return None
     rec = {}
     num = 0
@@ -89,26 +89,26 @@ def getRecommendations(source):
     for c in res["response"]["classes"]:
         rec[c["q_name"]] = {}
         for func in c["funcs"]:
-            rec[c["q_name"]]["{}.{}".format(c["q_name"], func["q_name"])] = {"annotations": []}
+            rec[c["q_name"]][func["q_name"]] = {"annotations": []}
             if "params_p" in func:
                 for p in func["params_p"]:
                     types = []
                     for t in func["params_p"][p]:
                         types.append(t[0])
-                    rec[c["q_name"]]["{}.{}".format(c["q_name"], func["q_name"])]["annotations"].append({"category": "arg", "name": p, "type": types})
+                    rec[c["q_name"]][func["q_name"]]["annotations"].append({"category": "arg", "name": p, "type": types})
                     num += 1
             if "return_type_p" in func:
                 types = []
                 for t in func["return_type_p"]:
                     types.append(t[0])
-                rec[c["q_name"]]["{}.{}".format(c["q_name"], func["q_name"])]["annotations"].append({"category": "return", "name": func["q_name"], "type": types})
+                rec[c["q_name"]][func["q_name"]]["annotations"].append({"category": "return", "name": func["q_name"], "type": types})
                 num += 1
             if "variables_p" in func:
                 for p in func["variables_p"]:
                     types = []
                     for t in func["variables_p"][p]:
                         types.append(t[0])
-                    rec[c["q_name"]]["{}.{}".format(c["q_name"], func["q_name"])]["annotations"].append({"category": "local", "name": p, "type": types})
+                    rec[c["q_name"]][func["q_name"]]["annotations"].append({"category": "local", "name": p, "type": types})
                     num += 1
     rec["global"] = {}
     for func in res["response"]["funcs"]:

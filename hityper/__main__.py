@@ -183,15 +183,15 @@ def infertypes(args):
                         root = ast.parse(source)
                         usertypefinder = UsertypeFinder(f, args.repo, True)
                         usertypes, _ = usertypefinder.run(root)
-                        generator = TDGGenerator(f, True, [args.location], usertypes, alias = 0, repo = None)
+                        generator = TDGGenerator(f, True, None, usertypes, alias = 0, repo = None)
                         global_tg = generator.run(root)
                         str_results = {}
                         global_tg.passTypes(debug = False)
                         str_results["global@global"] = global_tg.dumptypes()
                         if recommendations == None and args.type4py:
-                            recommendations = getRecommendations(source)
+                            single_recommendations = getRecommendations(source)
                         elif isinstance(recommendations, dict) and f in recommendations:
-                            recommendations = recommendations[f]
+                            single_recommendations = recommendations[f]
                         for tg in global_tg.tgs:
                             if recommendations != None:
                                 changed = True
@@ -200,7 +200,7 @@ def infertypes(args):
                                     iters += 1
                                     tg.passTypes(debug = False)
                                     types = tg.findHotTypes()
-                                    tg.recommendType(types, recommendations, formatUserTypes(usertypes), usertypes["module"], args.topn, simmodel = simmodel)
+                                    tg.recommendType(types, single_recommendations, formatUserTypes(usertypes), usertypes["module"], args.topn, simmodel = simmodel)
                                     tg.passTypes(debug = False)
                                     new_types = tg.findHotTypes()
                                     changed = detectChange(types, new_types)
