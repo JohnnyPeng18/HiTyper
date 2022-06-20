@@ -1592,6 +1592,13 @@ class TypeGraph(object):
             types.append(typemap[t])
         if explicitreturn == False:
             types.append({"category": "return", "name": self.name.split("@")[0], "type": ["None"]})
+        removed = []
+        for t in types:
+            if t["category"] == "local" and len(t["type"]) == 0:
+                removed.append(t)
+        for t in removed:
+            if t in types:
+                types.remove(t)
         return types
 
 
@@ -2326,6 +2333,13 @@ class GlobalTypeGraph(object):
                         res["type"].append(typename)
         for t in typemap:
             types.append(typemap[t])
+        removed = []
+        for t in types:
+            if t["category"] == "local" and len(t["type"]) == 0:
+                removed.append(t)
+        for t in removed:
+            if t in types:
+                types.remove(t)
         return types
 
     def draw(self, filerepo = None):
