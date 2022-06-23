@@ -249,7 +249,10 @@ class TDGGenerator(ast.NodeVisitor):
         self.classnames = []
 
         if isinstance(locations, list):
-            self.locations = locations
+            if len(locations) == 1 and locations[0] == None:
+                self.locations = None
+            else:
+                self.locations = locations
         elif locations == None:
             self.locations = locations
         else:

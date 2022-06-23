@@ -188,12 +188,13 @@ def infertypes(args):
                         str_results = {}
                         global_tg.passTypes(debug = False)
                         str_results["global@global"] = global_tg.dumptypes()
+                        single_recommendations = None
                         if recommendations == None and args.type4py:
                             single_recommendations = getRecommendations(source)
                         elif isinstance(recommendations, dict) and f in recommendations:
                             single_recommendations = recommendations[f]
                         for tg in global_tg.tgs:
-                            if recommendations != None:
+                            if single_recommendations != None:
                                 changed = True
                                 iters = 0
                                 while changed and iters < config["max_recommendation_iteration"]:
