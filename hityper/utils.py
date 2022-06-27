@@ -97,11 +97,11 @@ def getRecommendations(source):
                         types.append(t[0])
                     rec[c["q_name"]][func["q_name"]]["annotations"].append({"category": "arg", "name": p, "type": types})
                     num += 1
-            if "return_type_p" in func:
+            if "ret_type_p" in func:
                 types = []
-                for t in func["return_type_p"]:
+                for t in func["ret_type_p"]:
                     types.append(t[0])
-                rec[c["q_name"]][func["q_name"]]["annotations"].append({"category": "return", "name": func["q_name"], "type": types})
+                rec[c["q_name"]][func["q_name"]]["annotations"].append({"category": "return", "name": func["q_name"].split(".")[-1], "type": types})
                 num += 1
             if "variables_p" in func:
                 for p in func["variables_p"]:
@@ -110,7 +110,7 @@ def getRecommendations(source):
                         types.append(t[0])
                     rec[c["q_name"]][func["q_name"]]["annotations"].append({"category": "local", "name": p, "type": types})
                     num += 1
-    rec["global"] = {}
+    rec["global"] = {"global": {"annotations": []}}
     for func in res["response"]["funcs"]:
         rec["global"]["{}.{}".format("global", func["q_name"])] = {"annotations": []}
         if "params_p" in func:
@@ -120,11 +120,11 @@ def getRecommendations(source):
                     types.append(t[0])
                 rec["global"]["{}.{}".format("global", func["q_name"])]["annotations"].append({"category": "arg", "name": p, "type": types})
                 num += 1
-        if "return_type_p" in func:
+        if "ret_type_p" in func:
             types = []
-            for t in func["return_type_p"]:
+            for t in func["ret_type_p"]:
                 types.append(t[0])
-            rec["global"]["{}.{}".format("global", func["q_name"])]["annotations"].append({"category": "return", "name": func["q_name"], "type": types})
+            rec["global"]["{}.{}".format("global", func["q_name"])]["annotations"].append({"category": "return", "name": func["q_name"].split(".")[-1], "type": types})
             num += 1
         if "variables_p" in func:
             for p in func["variables_p"]:
@@ -133,6 +133,13 @@ def getRecommendations(source):
                     types.append(t[0])
                 rec["global"]["{}.{}".format("global", func["q_name"])]["annotations"].append({"category": "local", "name": p, "type": types})
                 num += 1
+    
+    for v in res["response"]["variables_p"]:
+        types = []
+        for t in res["response"]["variables_p"][v]:
+            types.append(t[0])
+        rec["global"]["global"]["annotations"].append({"category": "local", "name": v, "type": types})
+        num += 1
 
     logger.info("Get {} recommendations from Type4Py.".format(num))
     return rec
