@@ -948,7 +948,7 @@ class TypingRule(object):
                     for i in range(1, len(operands)):
                         rej_arg_types.append([])
                     for k in builtin_method:
-                        if func in builtin_method[k]:
+                        if func in builtin_method[k] and k != "standalone":
                             accpetable_targettypes.append(k)
                     for t in target.types:
                         if TypeObject.existSame(t, accpetable_targettypes):

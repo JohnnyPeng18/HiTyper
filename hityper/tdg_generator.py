@@ -42,7 +42,7 @@ AST2Op[ast.LtE] = "<="
 AST2Op[ast.Gt] = ">"
 AST2Op[ast.GtE] = ">="
 AST2Op[ast.Is] = "is"
-AST2Op[ast.IsNot] = "isnot"
+AST2Op[ast.IsNot] = "is not"
 AST2Op[ast.In] = "in"
 AST2Op[ast.NotIn] = "not in"
 

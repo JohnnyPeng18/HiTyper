@@ -298,7 +298,6 @@ class Rej_TypingRule(object):
         return rej_list
 
     def unknown_op(self,outs,operands,op):
-        print("Unknown Operation: " + op)
         rej_list = []
         for node in operands:
             rej_each = node.rejtypes

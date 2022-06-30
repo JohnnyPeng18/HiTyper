@@ -168,7 +168,7 @@ def test_multiplefile(gtfile, detailed_gtfile, usertype_file, recfile = None, re
         data[k] = {"total": 0, "success": {"arg": 0, "return": 0, "local": 0, "total": 0}, "nores": {"arg": 0, "return": 0, "local": 0, "total": 0}, "similar": {"arg": 0, "return": 0, "local": 0, "total": 0}, "partial": {"arg": 0, "return": 0, "local": 0, "total": 0},  "failed": {"arg": 0, "return": 0, "local": 0, "total": 0}, "acc": 0.0, "recall": 0.0, "similaracc": 0.0, "similarrecall": 0.0, "partialacc": 0.0, "partialrecall": 0.0, "file": 0}
     
     num = 0
-    for f in gts:
+    for f in tqdm(gts, desc = "Inferring types"):
         num +=1
         logger.info("++++++++++++++++++++++[{}/{}]Infer file {}++++++++++++++++++++++".format(num, len(gts), f))
         res = test_onefile("", f, gts = detailed_gts, usertypes = usertypes, recommendations = recommendations, recmodel = recmodel, topn = topn, simmodel = simmodel)
