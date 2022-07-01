@@ -1046,7 +1046,7 @@ class TypingRule(object):
                                             else:
                                                 logger.warning("Unhandled return value for built-in function {}".format(func))
 
-                        else:
+                        elif len(accpetable_targettypes) != 0:
                             rej_target_types.append(t)
                     rej_types = [rej_target_types] + rej_arg_types
                     outs = returntypes
@@ -1085,6 +1085,7 @@ class TypingRule(object):
                                 logger.warning("Unhandled return value for built-in function {}".format(func))
                         elif len(rule) > 2:
                             found = False
+                            validtypes = [[] for i in operands]
                             for r in rule:
                                 if isinstance(r, list) and len(r) == len(operands):
                                     found = True
@@ -1093,18 +1094,19 @@ class TypingRule(object):
                                             rej_types.append([])
                                             continue
                                         elif r[i][1].startswith("@") and r[i][1] in special_types:
-                                            validtypes = []
+                                            #validtypes = []
                                             for t in special_types[r[i][1]]:
-                                                validtypes += TypeObject.Str2Obj(t)
+                                                validtypes[i] += TypeObject.Str2Obj(t)
                                         else:
-                                            validtypes = TypeObject.Str2Obj(r[i][1])
-                                        for ot in operands[i].types:
-                                            if not TypeObject.existType(ot, validtypes):
-                                                rej_types[i].append(ot)
+                                            validtypes[i] = TypeObject.Str2Obj(r[i][1])
                                 if "@" not in rule[-1]:
                                     returntypes = TypeObject.Str2Obj(rule[-1])
                                 else:
                                     logger.warning("Unhandled return value for built-in function {}".format(func))
+                            for ot in operands[i].types:
+                                if not TypeObject.existType(ot, validtypes[i]):
+                                    #print(TypeObject.resolveTypeName(ot), validtypes[i])
+                                    rej_types[i].append(ot)
                             if found == False:
                                 for r in rule:
                                     if isinstance(r, list) and len(r) > len(operands) - 1:

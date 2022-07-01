@@ -66,10 +66,10 @@ builtin_method_properties = {
 }
 
 special_types = {
-    "@iterable@": ["list", "tuple", "range", "str", "bytes", "bytearray", "set", "frozenset", "dict"],
+    "@iterable@": ["list", "tuple", "range", "str", "bytes", "bytearray", "set", "frozenset", "dict", "Generator"],
     "@byte-like@": ["bytes", "bytearray"],
     "@set-like@": ["set", "frozenset"],
-    "@subscriptable@": ["list", "tuple", "str", "bytes", "bytearray"],
+    "@subscriptable@": ["list", "tuple", "str", "bytes", "bytearray", "dict"],
     "@number@": ["bool", "int", "float", "complex"],
     "@hashable@": [],
     "@sequence@": ["str", "bytes", "bytearray", "tuple", "list", "range"],

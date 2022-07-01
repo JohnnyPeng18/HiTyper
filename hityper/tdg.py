@@ -317,7 +317,7 @@ class TypeGenNode(GraphBaseNode):
                         if i < len(self.ins):
                             for t in n:
                                 if t not in self.ins[i].rejtypes and t.category != 2 and not isinstance(self.ins[i], TypeNode):
-                                    logger.info(f"Reject {TypeObject.resolveTypeName(t)} for node {self.ins[i].name} in op {self.op}.")
+                                    logger.info("Reject {} for node {} in op {}.".format(TypeObject.resolveTypeName(t), self.ins[i].name, self.op if self.op != "call" else self.func))
                                     self.ins[i].rejtypes.append(t)
             else:
                 raise ValueError("outputs should have at least 3 elements.")
