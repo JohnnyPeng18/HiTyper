@@ -66,7 +66,7 @@ builtin_method_properties = {
 }
 
 special_types = {
-    "@iterable@": ["list", "tuple", "range", "str", "bytes", "bytearray", "set", "frozenset", "dict", "Generator"],
+    "@iterable@": ["list", "tuple", "range", "str", "bytes", "bytearray", "set", "frozenset", "dict", "Generator", "IO"],
     "@byte-like@": ["bytes", "bytearray"],
     "@set-like@": ["set", "frozenset"],
     "@subscriptable@": ["list", "tuple", "str", "bytes", "bytearray", "dict"],
@@ -145,12 +145,12 @@ builtin_op = {
         "list": ["+", "*", "not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
         "tuple": ["+", "*", "not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
         "range": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
-        "str": ["+", "*", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "str": ["+", "*", "%", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
         "bytes": ["+", "*", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
         "bytearray": ["+", "*", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
         "memoryview": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
-        "set": ["not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
-        "fronzeset": ["not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "set": ["-", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "fronzeset": ["-", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
         "dict": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
         "dict_keys": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
         "dict_values": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
@@ -168,12 +168,12 @@ builtin_op = {
         "list": ["+", "*", "not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
         "tuple": ["+", "*", "not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
         "range": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
-        "str": ["+", "*", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "str": ["+", "*", "%", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
         "bytes": ["+", "*", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
         "bytearray": ["+", "*", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
         "memoryview": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
-        "set": ["not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
-        "fronzeset": ["not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "set": ["-", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
+        "fronzeset": ["-", "not", "and", "or", "==", "!=", "<", "<=", ">", ">=", "is", "is not", "in", "not in"],
         "dict": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
         "dict_keys": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
         "dict_values": ["not", "and", "or", "==", "!=", "is", "is not", "in", "not in"],
@@ -252,7 +252,7 @@ builtin_method = {
         "append": [[("x", "Any")], "None"],
         "clear": [[], "None"],
         "copy": [[], "@originaltype@"],
-        "extend": [[("t", "List")], "None"],
+        "extend": [[("t", "@iterable@")], "None"],
         "insert": [[("i", "int"), ("x", "Any")], "None"],
         "pop": [[["i", "int"]], "None"],
         "remove": [[("x", "@elementtype@")], "None"],
@@ -463,6 +463,10 @@ builtin_method = {
     },
     "Callable": {
         "__call__": []
+    },
+    "IO": {
+        "close": [],
+        "read": [[], "str"]
     }
 
 }

@@ -278,7 +278,7 @@ class TypingRule(object):
             outs = [TypeObject("Text", 0)]
             # left can only be Text
             for idx in range(len(ltypes)):
-                if ltypes[idx].type!="Text":
+                if not TypeObject.existSame(ltypes[idx], ["str"]):
                     rej_ltypes.append(ltypes[idx])
             return [rej_ltypes, rej_rtypes], outs
 
@@ -602,6 +602,8 @@ class TypingRule(object):
                     outs += t.keytype
                 else:
                     outs.append(t.keytype)
+            elif TypeObject.existSame(t, ["IO"]):
+                outs.append(TypeObject("Text", 0))
             else:
                 if isinstance(t.elementtype, list):
                     outs += t.elementtype
@@ -1098,15 +1100,15 @@ class TypingRule(object):
                                             for t in special_types[r[i][1]]:
                                                 validtypes[i] += TypeObject.Str2Obj(t)
                                         else:
-                                            validtypes[i] = TypeObject.Str2Obj(r[i][1])
-                                if "@" not in rule[-1]:
-                                    returntypes = TypeObject.Str2Obj(rule[-1])
-                                else:
-                                    logger.warning("Unhandled return value for built-in function {}".format(func))
-                            for ot in operands[i].types:
-                                if not TypeObject.existType(ot, validtypes[i]):
-                                    #print(TypeObject.resolveTypeName(ot), validtypes[i])
-                                    rej_types[i].append(ot)
+                                            validtypes[i] += TypeObject.Str2Obj(r[i][1])
+                            if "@" not in rule[-1]:
+                                returntypes = TypeObject.Str2Obj(rule[-1])
+                            else:
+                                logger.warning("Unhandled return value for built-in function {}".format(func))
+                            for i in range(0, len(operands)):
+                                for ot in operands[i].types:
+                                    if not TypeObject.existType(ot, validtypes[i]) and len(validtypes[i]) != 0:
+                                        rej_types[i].append(ot)
                             if found == False:
                                 for r in rule:
                                     if isinstance(r, list) and len(r) > len(operands) - 1:
@@ -1223,11 +1225,22 @@ class TypingRule(object):
                     rej_target_types = []
                     for i in range(1, len(operands)):
                         for t in operands[i].types:
-                            if not TypeObject.existSame(t, ["List"]):
+                            if not TypeObject.existSame(t, ["List", "Tuple", "str", "bytes", "bytearray", "Set", "frozenset", "Dict", "Generator", "IO"]):
                                 rej_target_types.append(t)
-                            for types_t in t.elementtype:
-                                if not TypeObject.existType(types_t, temp.elementtype):
-                                    temp.elementtype.append(types_t)
+                            if TypeObject.existSame(t, ["list", "tuple", "set", "frozenset", "Generator"]):
+                                for types_t in t.elementtype:
+                                    if not TypeObject.existType(types_t, temp.elementtype):
+                                        temp.elementtype.append(types_t)
+                            elif TypeObject.existSame(t, ["str", "IO"]):
+                                if not TypeObject.existType("str", temp.elementtype):
+                                    temp.elementtype.append(TypeObject("str", 0))
+                            elif TypeObject.existSame(t, ["bytes", "bytearray"]):
+                                if not TypeObject.existType("bytes", temp.elementtype):
+                                    temp.elementtype.append(TypeObject("bytes", 0))
+                            elif TypeObject.existSame(t, ["Dict"]):
+                                for types_t in t.keytype:
+                                    if not TypeObject.existType(types_t, temp.elementtype):
+                                        temp.elementtype.append(types_t)
                         rej_types.append(rej_target_types)
                     outs.append(temp)
                     return rej_types, outs
@@ -1349,9 +1362,9 @@ class TypingRule(object):
                         target = operands[0]
                         rej_target_types = []
                         outs = []
-                        temp = TypeObject("Dict",0)
+                        temp = None
                         for t in target.types:
-                            if not TypeObject.existSame(t, ["Dict"]):
+                            if not TypeObject.existSame(t, ["Dict", "Set"]):
                                 rej_target_types.append(t)
                             else:
                                 temp = deepcopy(t)
@@ -1361,13 +1374,22 @@ class TypingRule(object):
                         if len(operands) > 1:
                             target = operands[1]
                             rej_target_types = []
-                            for t in target.types:
-                                if not TypeObject.existSame(t, ["Dict"]):
-                                    rej_target_types.append(t)
-                                else:
-                                    temp.keytype += t.keytype
-                                    temp.valuetype += t.valuetype
-                                    temp.elementtype = temp.keytype
+                            if temp != None:
+                                for t in target.types:
+                                    if not TypeObject.existSame(t, ["List", "Tuple", "range", "str", "bytes", "bytearray", "Set", "frozenset", "Dict", "IO"]):
+                                        rej_target_types.append(t)
+                                    elif TypeObject.existSame(t, ["str", "IO"]):
+                                        if not TypeObject.existType("str", temp.elementtype):
+                                            temp.elementtype.append(TypeObject("str", 0))
+                                    elif TypeObject.existSame(t, ["bytes", "bytearray"]):
+                                        if not TypeObject.existType("bytes", temp.elementtype):
+                                            temp.elementtype.append(TypeObject("bytes", 0))
+                                    elif TypeObject.existSame(temp, ["Dict"]):
+                                        temp.keytype += t.keytype
+                                        temp.valuetype += t.valuetype
+                                        temp.elementtype = temp.keytype
+                                    else:
+                                        temp.elementtype += t.elementtype
 
                             rej_types.append(rej_target_types)
                         if len(operands)>2:

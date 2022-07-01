@@ -381,7 +381,7 @@ class TDGGenerator(ast.NodeVisitor):
             self.visit(node.args[0])
             typestr = Attribute2Str(node.args[1])
             if typestr in stdtypes["overall"]:
-                typeobject = TypeObject(inputtypemap[typestr], 0)
+                typeobject = TypeObject(inputtypemap[typestr.lower()], 0)
             else:
                 typeobject = TypeObject(typestr, 2)
             if inverse == 1:
