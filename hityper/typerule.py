@@ -117,7 +117,7 @@ class TypingRule(object):
         #if not about iterable
         res = self.sub_act(operands , op, func, attr, usertypes, iterable=False, curnode = curnode)
         if res==None:
-            logger.warning("POSIIBLE NONE RETURN op is:", op)
+            logger.warning("POSIIBLE NONE RETURN op is:" + op if op != "call" else "POSIIBLE NONE RETURN op is:" + func)
         return res
 
     def unknown_op(self, operands, op):
@@ -1717,6 +1717,12 @@ class TypingRule(object):
                     for i in range(1, len(operands)):
                         rej_types.append([])
                     return rej_types, outs
+                else:
+                    rej_ltypes = []
+                    for i in range(0, len(operands)):
+                        rej_ltypes.append([])
+                    outs = []
+                    return rej_ltypes, outs
             
             elif func == "keys":
                 if attr != None:
@@ -1738,6 +1744,12 @@ class TypingRule(object):
                     for i in range(1, len(operands)):
                         rej_types.append([])
                     return rej_types, outs
+                else:
+                    rej_ltypes = []
+                    for i in range(0, len(operands)):
+                        rej_ltypes.append([])
+                    outs = []
+                    return rej_ltypes, outs
 
             elif func == "values":
                 if attr != None:
@@ -1759,6 +1771,12 @@ class TypingRule(object):
                     for i in range(1, len(operands)):
                         rej_types.append([])
                     return rej_types, outs
+                else:
+                    rej_ltypes = []
+                    for i in range(0, len(operands)):
+                        rej_ltypes.append([])
+                    outs = []
+                    return rej_ltypes, outs
 
             elif func == "abs":
                 # as for NOTAttribute function, we have to make sure self.attr==None

@@ -3,7 +3,7 @@
 config = {
 
     #Indicate the web API that HiTyper should call to invoke the DL model
-    "type4py": "https://type4py.com/api/predict?tc=0",
+    "type4py": "http://localhost:5001/api/predict?tc=0",
 
     #Indicate the default DL model used in HiTyper
     "default_model": "type4py",

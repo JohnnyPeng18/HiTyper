@@ -68,7 +68,7 @@ def transformConstant(node):
     elif type(node.value) == type(Ellipsis):
         return None
     else:
-        raise TypeError("Currently we do not suupport constant of type: " + str(type(node.value)))
+        raise TypeError("Currently HiTyper does not support constant of type: " + str(type(node.value)))
 
 def Attribute2Str(node):
     if isinstance(node, ast.Attribute):
@@ -359,7 +359,7 @@ class TDGGenerator(ast.NodeVisitor):
             else:
                 typestr = Attribute2Str(node.comparators[0])
                 if typestr in stdtypes["overall"]:
-                    typeobject = TypeObject(inputtypemap[typestr], 0)
+                    typeobject = TypeObject(inputtypemap[typestr.lower()], 0)
                 else:
                     typeobject = TypeObject(typestr, 2)
             if type(node.ops[0]) == ast.IsNot:
@@ -1948,7 +1948,7 @@ class TDGGenerator(ast.NodeVisitor):
 
     def visit_For(self, node):
         if len(node.orelse) != 0:
-            raise ValueError("Currently we do not support for loops with else statements.")
+            raise ValueError("Currently HiTyper does not support for loops with else statements.")
 
         typegen = TypeGenNode("forin", [], [])
         typegen.setNodePos(node.lineno, node.col_offset, node.end_col_offset)
@@ -2033,7 +2033,7 @@ class TDGGenerator(ast.NodeVisitor):
 
     def visit_While(self, node):
         if len(node.orelse) != 0:
-            raise ValueError("Currently we do not support for loops with else statements.")
+            raise ValueError("Currently HiTyper does not support for loops with else statements.")
 
         self.asifcond = True
         self.visit(node.test)

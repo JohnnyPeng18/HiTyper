@@ -146,6 +146,8 @@ class TypeObject(object):
             return TypeObject.isIdentical(l.elementtype[0], r)
         if r.category == 0 and l.category == 2 and r.type.lower() == "type" and len(r.elementtype) == 1:
             return TypeObject.isIdentical(r.elementtype[0], l)
+        if (l.category == 2 or r.category == 2) and l.type.split(".")[-1].lower() == r.type.split(".")[-1].lower():
+            return True
         return False
     
     @staticmethod
@@ -298,16 +300,16 @@ class TypeObject(object):
     def simplifyGenericType(t):
         if not isinstance(t, TypeObject):
             return t
-        if t.type in ["Set", "Tuple", "List", "Awaitable", "Iterable", "Union"]:
+        if t.type.lower() in ["set", "frozenset", "tuple", "list", "awaitable", "iterable", "union", "generator"]:
             t.elementtype = TypeObject.removeInclusiveTypes(t.elementtype)
-        elif t.type == "Dict":
+        elif t.type.lower() == "dict":
             t.keytype = TypeObject.removeInclusiveTypes(t.keytype)
             t.valuetype = TypeObject.removeInclusiveTypes(t.valuetype)
-        elif t.type == "Optional":
+        elif t.type.lower() == "optional":
             t.elementtype = TypeObject.removeRedundantTypes(t.elementtype)
             rm = None
             for et in t.elementtype:
-                if et.type == "None":
+                if et.type.lower() == "none":
                     rm = et
                     break
             if rm != None and rm in t.elementtype:
@@ -370,12 +372,13 @@ class TypeObject(object):
     def resolveTypeName(t):
         if isinstance(t, TypeObject):
             t = TypeObject.removeInvalidTypes(t)
+            t = TypeObject.simplifyGenericType(t)
             if t.category != 0:
                 return t.type
             elif t.type.lower() not in exporttypemap:
                 raise TypeError("Unknown type: " + t.type)
             typestr = exporttypemap[t.type.lower()]
-            if t.type.lower() in ["dict", "callable"]:
+            if t.type.lower() in ["dict", "callable"] and len(t.keytype) + len(t.valuetype) > 0:
                 typestr = typestr + "["
                 if len(t.keytype) == 0:
                     typestr += ", "
@@ -398,7 +401,7 @@ class TypeObject(object):
                     typestr = typestr[:-1]
                     typestr += "]"
                 typestr += "]"
-            elif t.type.lower() in ["set", "tuple", "list", "awaitable", "iterable", "sequence", "generator"]:
+            elif t.type.lower() in ["set", "tuple", "list", "awaitable", "iterable", "sequence", "generator"] and len(t.elementtype) > 0:
                 typestr = typestr + "["
                 if len(t.elementtype) == 1:
                     typestr = typestr + TypeObject.resolveTypeName(t.elementtype[0])
@@ -415,7 +418,7 @@ class TypeObject(object):
                     typestr = typestr[:-1]
                     typestr += "]"
                 typestr += "]"
-            elif t.type.lower() == "optional":
+            elif t.type.lower() == "optional" and len(t.elementtype) > 0:
                 typestr += "["
                 if len(t.elementtype) > 1:
                     typestr += "typing.Union["
@@ -427,7 +430,7 @@ class TypeObject(object):
                     typestr = typestr + TypeObject.resolveTypeName(t.elementtype[0]) + "]"
                 else:
                     typestr += "]"
-            elif t.type.lower() == "union":
+            elif t.type.lower() == "union" and len(t.elementtype) > 0:
                 typestr += "["
                 if len(t.elementtype) == 0:
                     typestr += "]"
@@ -480,7 +483,7 @@ class TypeObject(object):
 
 
     @staticmethod
-    def Str2Obj(typestr):
+    def _Str2Obj(typestr):
         strobjs = []
         typestr = typestr.replace(" ", "")
         typestr = typestr.replace("builtins.", "")
@@ -492,7 +495,7 @@ class TypeObject(object):
         if len(typestr) > 500:
             #logger.warning("Type name is too long.")
             return strobjs
-        if typestr in ["Union", "typing.Union"] and "[" not in typestr:
+        if typestr.lower() in ["union", "typing.union"] and "[" not in typestr:
             return strobjs
         elif typestr.lower() in inputtypemap:
             strobjs.append(TypeObject(inputtypemap[typestr.lower()], 0))
@@ -502,7 +505,7 @@ class TypeObject(object):
             index1 = typestr.index("[")
             index2 = typestr.rfind("]")
             innerstr = typestr[index1 + 1:index2]
-            if "Union" in typestr[:index1]:
+            if "union" in typestr[:index1].lower():
                 strs = innerstr.split(",")
                 leftnum = 0
                 rightnum = 0
@@ -512,18 +515,18 @@ class TypeObject(object):
                         leftnum += s.count("[")
                         rightnum += s.count("]")
                         if leftnum == rightnum:
-                            strobjs += TypeObject.Str2Obj(cur_str)
+                            strobjs += TypeObject._Str2Obj(cur_str)
                             cur_str = ""
                         else:
                             cur_str += ","
                 return strobjs
-            elif "Optional" in typestr[:index1] or "typing.Optional" in typestr[:index1]:
-                strobjs += TypeObject.Str2Obj(innerstr)
+            elif "optional" in typestr[:index1].lower() or "typing.optional" in typestr[:index1].lower():
+                strobjs += TypeObject._Str2Obj(innerstr)
                 strobjs.append(TypeObject("None", 0))
                 return strobjs
             if typestr[:index1].lower() in inputtypemap:
                 typeobj = TypeObject(inputtypemap[typestr[:index1].lower()], 0)
-                if "Dict" in typestr[:index1] or "Mapping" in typestr[:index1] or "Callable" in typestr[:index1]:
+                if "dict" in typestr[:index1].lower() or "mapping" in typestr[:index1].lower() or "callable" in typestr[:index1].lower():
                     if "," in innerstr:
                         commaindex = innerstr.split(",")
                         leftnum = 0
@@ -536,9 +539,9 @@ class TypeObject(object):
                             rightnum += s.count("]")
                             if leftnum == rightnum:
                                 if count == 0:
-                                    typeobj.keytype += TypeObject.Str2Obj(cur_str)
+                                    typeobj.keytype += TypeObject._Str2Obj(cur_str)
                                 else:
-                                    typeobj.valuetype += TypeObject.Str2Obj(cur_str)
+                                    typeobj.valuetype += TypeObject._Str2Obj(cur_str)
                                 count += 1
                                 cur_str = ""
                             else:
@@ -557,23 +560,23 @@ class TypeObject(object):
                         leftnum += s.count("[")
                         rightnum += s.count("]")
                         if leftnum == rightnum:
-                            typeobj.elementtype += TypeObject.Str2Obj(cur_str)
+                            typeobj.elementtype += TypeObject._Str2Obj(cur_str)
                             cur_str = ""
                         else:
                             cur_str += ","
                     
                     '''
                     if "[" in innerstr and "]" in innerstr:
-                        typeobj.elementtype = TypeObject.Str2Obj(innerstr)
+                        typeobj.elementtype = TypeObject._Str2Obj(innerstr)
                     else:
                         strs = innerstr.split(",")
                         for s in strs:
-                            typeobj.elementtype += TypeObject.Str2Obj(s)
+                            typeobj.elementtype += TypeObject._Str2Obj(s)
                     '''
                     strobjs.append(typeobj)
                     return strobjs
             else:
-                typeobj = TypeObject(typestr.replace("[typing.Any]", ""), 2)
+                typeobj = TypeObject(typestr.replace("[typing.Any]", "").replace("[typing.any]", ""), 2)
                 strobjs.append(typeobj)
                 return strobjs
         elif typestr.startswith("typing") and "[" not in typestr and typestr.lower() in inputtypemap:
@@ -584,6 +587,23 @@ class TypeObject(object):
             typeobj = TypeObject(typestr, 2)
             strobjs.append(typeobj)
             return strobjs
+
+    @staticmethod
+    def Str2Obj(typestr):
+        if typestr.count("[") != typestr.count("]"):
+            return []
+        else:
+            typeobjs = TypeObject._Str2Obj(typestr)
+            queue = typeobjs
+            while(len(queue) != 0):
+                obj = queue[0]
+                queue = queue[1:]
+                if obj.category == 2 and ("[" in obj.type or "]" in obj.type):
+                    return []
+                queue += obj.elementtype
+                queue += obj.keytype
+                queue += obj.valuetype
+            return typeobjs
 
     @staticmethod
     def DumpObject(typeobj):

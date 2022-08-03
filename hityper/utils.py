@@ -112,26 +112,26 @@ def getRecommendations(source):
                     num += 1
     rec["global"] = {"global": {"annotations": []}}
     for func in res["response"]["funcs"]:
-        rec["global"]["{}.{}".format("global", func["q_name"])] = {"annotations": []}
+        rec["global"][func["q_name"]] = {"annotations": []}
         if "params_p" in func:
             for p in func["params_p"]:
                 types = []
                 for t in func["params_p"][p]:
                     types.append(t[0])
-                rec["global"]["{}.{}".format("global", func["q_name"])]["annotations"].append({"category": "arg", "name": p, "type": types})
+                rec["global"][func["q_name"]]["annotations"].append({"category": "arg", "name": p, "type": types})
                 num += 1
         if "ret_type_p" in func:
             types = []
             for t in func["ret_type_p"]:
                 types.append(t[0])
-            rec["global"]["{}.{}".format("global", func["q_name"])]["annotations"].append({"category": "return", "name": func["q_name"].split(".")[-1], "type": types})
+            rec["global"][func["q_name"]]["annotations"].append({"category": "return", "name": func["q_name"].split(".")[-1], "type": types})
             num += 1
         if "variables_p" in func:
             for p in func["variables_p"]:
                 types = []
                 for t in func["variables_p"][p]:
                     types.append(t[0])
-                rec["global"]["{}.{}".format("global", func["q_name"])]["annotations"].append({"category": "local", "name": p, "type": types})
+                rec["global"][func["q_name"]]["annotations"].append({"category": "local", "name": p, "type": types})
                 num += 1
     
     for v in res["response"]["variables_p"]:
@@ -145,7 +145,7 @@ def getRecommendations(source):
     return rec
 
 
-def test_multiplefile(gtfile, detailed_gtfile, usertype_file, recfile = None, recmodel = False, topn = 1):
+def test_multiplefile(gtfile, detailed_gtfile, usertype_file, recfile = None, recmodel = False, topn = 1, prefix = None, eval = False):
     with open(gtfile, "r", encoding = "utf-8") as gf:
         gts = json.loads(gf.read())
     with open(detailed_gtfile, "r", encoding = "utf-8") as gf:
@@ -164,6 +164,7 @@ def test_multiplefile(gtfile, detailed_gtfile, usertype_file, recfile = None, re
         simmodel = None
     
     data = {}
+    predictions = {}
     for k in detailed_gts:
         data[k] = {"total": 0, "success": {"arg": 0, "return": 0, "local": 0, "total": 0}, "nores": {"arg": 0, "return": 0, "local": 0, "total": 0}, "similar": {"arg": 0, "return": 0, "local": 0, "total": 0}, "partial": {"arg": 0, "return": 0, "local": 0, "total": 0},  "failed": {"arg": 0, "return": 0, "local": 0, "total": 0}, "acc": 0.0, "recall": 0.0, "similaracc": 0.0, "similarrecall": 0.0, "partialacc": 0.0, "partialrecall": 0.0, "file": 0}
     
@@ -171,9 +172,10 @@ def test_multiplefile(gtfile, detailed_gtfile, usertype_file, recfile = None, re
     for f in tqdm(gts, desc = "Inferring types"):
         num +=1
         logger.info("++++++++++++++++++++++[{}/{}]Infer file {}++++++++++++++++++++++".format(num, len(gts), f))
-        res = test_onefile("", f, gts = detailed_gts, usertypes = usertypes, recommendations = recommendations, recmodel = recmodel, topn = topn, simmodel = simmodel)
+        res, str_results = test_onefile("", f, gts = detailed_gts, usertypes = usertypes, recommendations = recommendations, recmodel = recmodel, topn = topn, simmodel = simmodel, prefix = prefix, eval = eval)
         if res == None:
             continue
+        predictions[f] = str_results
         for k in res:
             for i in res[k]:
                 if i == "total":
@@ -232,13 +234,15 @@ def test_multiplefile(gtfile, detailed_gtfile, usertype_file, recfile = None, re
         logger.info("Result for {}: Acc - {}, Recall - {}, Similar_Acc - {}, Similar_Recall - {}, Partial_Acc - {}, Partial_Recall - {}, Total - {}, Success Details - {}, Similar Details - {}, Partial Details - {}, Failure Details - {}, No Res Details - {}".format(k, data[k]["acc"], data[k]["recall"], data[k]["similaracc"], data[k]["similarrecall"], data[k]["partialacc"], data[k]["partialrecall"], data[k]["total"], data[k]["success"], data[k]["similar"], data[k]["partial"], data[k]["failed"], data[k]["nores"]))
     for k in seconddata:
         logger.info("Result for {}: Acc - {}, Recall - {}, Similar_Acc - {}, Similar_Recall - {}, Partial_Acc - {}, Partial_Recall - {}, Total - {}".format(k, seconddata[k]["acc"], seconddata[k]["recall"], seconddata[k]["similaracc"], seconddata[k]["similarrecall"], seconddata[k]["partialacc"], seconddata[k]["partialrecall"], seconddata[k]["total"]))
+    
+    return predictions
                     
 
     
 
 
 
-def test_onefile(gtfile, filename, gts = None, gentg = False, usertypes = None, recommendations = None, recmodel = False, topn = 1, simmodel = None):
+def test_onefile(gtfile, filename, gts = None, gentg = False, usertypes = None, recommendations = None, recmodel = False, topn = 1, simmodel = None, prefix = None, eval = False):
     if gts == None:
         with open(gtfile, "r", encoding = "utf-8") as gf:
             gts = json.loads(gf.read())
@@ -254,11 +258,15 @@ def test_onefile(gtfile, filename, gts = None, gentg = False, usertypes = None, 
                         locations.append("{}@{}".format(func, c))
     if len(gt) == 0:
         logger.error("Cannot find groundtruth types of this file.")
-        return None
-    if not os.path.exists(filename):
-        logger.error("File does not exist.")
-        return None
-    source = open(filename, "r", encoding='UTF-8').read()
+        return None, None
+    if prefix != None:
+        filepath = prefix + "/" + filename
+    else:
+        filepath = filename
+    if not os.path.exists(filepath):
+        logger.error("File {} does not exist.".format(filename))
+        return None, None
+    source = open(filepath, "r", encoding='UTF-8').read()
     root = ast.parse(source)
     if isinstance(usertypes, dict) and filename in usertypes:
         usertype = usertypes[filename]
@@ -287,11 +295,17 @@ def test_onefile(gtfile, filename, gts = None, gentg = False, usertypes = None, 
         visitor = TDGGenerator(filename, True, None, usertype)
         global_tg = visitor.run(root)
     except Exception as e:
-        logger.error("Cannot generate TDG for this file. Reason: {}".format(e))
-        return None
+        logger.error("Cannot generate TDG for file {}. Reason: {}".format(filename, e))
+        return None, None
     results = {}
     str_results = {}
-    global_tg.passTypes(debug = False)
+    if recommendations != None and "global" in recommendations and "global" in recommendations["global"]:
+        global_tg.passTypes(debug = False)
+        global_tg.recommendType(recommendations, formatUserTypes(usertype), usertype["module"], topn, simmodel = simmodel)
+        global_tg.passTypes(debug = False)
+    else:
+        global_tg.passTypes(debug = False)
+    global_tg.simplifyTypes()
     results["global@global"] = global_tg.returntypes()
     str_results["global@global"] = global_tg.dumptypes()
     if gentg == True:
@@ -299,26 +313,30 @@ def test_onefile(gtfile, filename, gts = None, gentg = False, usertypes = None, 
         global_tg.draw(filerepo = "testtgs")
     for tg in global_tg.tgs:
         if tg.name in locations:
-            if recommendations != None:
-                changed = True
-                iters = 0
-                while changed and iters < 20:
-                    iters += 1
+            try:
+                if recommendations != None:
+                    changed = True
+                    iters = 0
+                    while changed and iters < 20:
+                        iters += 1
+                        tg.passTypes(debug = False)
+                        types = tg.findHotTypes()
+                        tg.recommendType(types, recommendations, formatUserTypes(usertype), usertype["module"], topn, simmodel = simmodel, eval = eval)
+                        tg.passTypes(debug = False)
+                        new_types = tg.findHotTypes()
+                        changed = detectChange(types, new_types)
+                    tg.simplifyTypes()
+                else:
                     tg.passTypes(debug = False)
-                    types = tg.findHotTypes()
-                    tg.recommendType(types, recommendations, formatUserTypes(usertype), usertype["module"], topn, simmodel = simmodel)
-                    tg.passTypes(debug = False)
-                    new_types = tg.findHotTypes()
-                    changed = detectChange(types, new_types)
-                tg.simplifyTypes()
-            else:
-                tg.passTypes(debug = False)
-                tg.simplifyTypes()
-            if gentg == True:
-                logger.info("TDG dumped.")
-                tg.draw(filerepo = "testtgs")
-            results[tg.name] = tg.returntypes()
-            str_results[tg.name] = tg.dumptypes()
+                    tg.simplifyTypes()
+                if gentg == True:
+                    logger.info("TDG dumped.")
+                    tg.draw(filerepo = "testtgs")
+                results[tg.name] = tg.returntypes()
+                str_results[tg.name] = tg.dumptypes()
+            except Exception as e:
+                logger.error("Error occurred when iterating the TDG {}, reason: {}".format(tg.name, str(e)))
+                return None, None
     num = {}
     for k in gt:
         num[k] = {"total": 0, "success": {"arg": 0, "return": 0, "local": 0, "total": 0}, "nores": {"arg": 0, "return": 0, "local": 0, "total": 0}, "similar": {"arg": 0, "return": 0, "local": 0, "total": 0}, "partial": {"arg": 0, "return": 0, "local": 0, "total": 0}, "failed": {"arg": 0, "return": 0, "local": 0, "total": 0}, "acc": 0.0, "recall": 0.0, "similaracc": 0.0, "similarrecall": 0.0, "partialacc": 0.0, "partialrecall": 0.0}
@@ -385,4 +403,4 @@ def test_onefile(gtfile, filename, gts = None, gentg = False, usertypes = None, 
         logger.info("Result for {}: Acc - {}, Recall - {}, Similar_Acc - {}, Similar_Recall - {}, Partial_Acc - {}, Partial_Recall - {}, Total - {}, Success Details - {}, Similar Details - {}, Partial Details - {}, Failure Details - {}".format(k, num[k]["acc"], num[k]["recall"], num[k]["similaracc"], num[k]["similarrecall"], num[k]["partialacc"], num[k]["partialrecall"], num[k]["total"], num[k]["success"], num[k]["similar"], num[k]["partial"], num[k]["failed"]))
     logger.debug(json.dumps(gt, sort_keys=True, indent=4, separators=(',', ': ')))
     logger.debug(json.dumps(str_results, sort_keys=True, indent=4, separators=(',', ': ')))
-    return num
+    return num, str_results

@@ -1268,7 +1268,7 @@ class TypeGraph(object):
                 queue.remove(n)
         
         for n in self.argnodes:
-            if len(n.types) == 1 and n.types[0].type == "None" and n not in queue:
+            if len(n.types) == 1 and n.types[0].type.lower() == "none" and n not in queue:
                 queue.append(n)
         
         removed = []
@@ -1304,6 +1304,7 @@ class TypeGraph(object):
 
     #This function defines how to map the explicitly wrong recommended types to a valid type
     def replaceType(self, usertypes, tt, nodename, simmodel = None):
+        return 0
         if tt.category != 0 and tt.type not in usertypes and len(tt.type) != 0:
             largest_score = 0
             largest_type = None
@@ -1353,9 +1354,9 @@ class TypeGraph(object):
                     tt.category = 2
             
 
-    def recommendType(self, typeslots, recommendations, usertypes, modules, topn, simmodel = None):
+    def recommendType(self, typeslots, recommendations, usertypes, modules, topn, simmodel = None, eval = True):
         classname = self.name.split("@")[-1]
-        funcname = "{}.{}".format(classname, self.name.split("@")[0])
+        funcname = "{}.{}".format(classname, self.name.split("@")[0]) if classname != "global" else self.name.split("@")[0]
         if "," in classname:
             classname = classname.split(",")[-1]
         if classname not in recommendations or funcname not in recommendations[classname]:
@@ -1383,25 +1384,76 @@ class TypeGraph(object):
             for tt in rectypes:
                 if tt.category == 0:
                     for ett in tt.elementtype:
-                        if ett.category != 0 and ett.type.split(".")[0] not in modules:
+                        if ett.category != 0 and "." in ett.type and ett.type.split(".")[0] not in modules:
                             self.replaceType(usertypes, ett, name, simmodel = simmodel)
                     for ett in tt.keytype:
-                        if ett.category != 0 and ett.type.split(".")[0] not in modules:
+                        if ett.category != 0 and "." in ett.type and ett.type.split(".")[0] not in modules:
                             self.replaceType(usertypes, ett, name, simmodel = simmodel)
                     for ett in tt.valuetype:
-                        if ett.category != 0 and ett.type.split(".")[0] not in modules:
+                        if ett.category != 0 and "." in ett.type and ett.type.split(".")[0] not in modules:
                             self.replaceType(usertypes, ett, name, simmodel = simmodel)
                     verifiedtypes.append(tt)
                 elif tt.category != 0 and tt.type.split(".")[0] not in modules:
                     self.replaceType(usertypes, tt, name, simmodel = simmodel)
-            logger.info("[Type Recommendation]Found recommendation for variable {}, recommended types: {}".format(name, TypeObject.DumpOriObjects(rectypes)))
-            for tt in rectypes:
+                    verifiedtypes.append(tt)
+                elif tt.category != 0 and (tt.type.split(".")[0] in modules or "." not in tt.type):
+                    verifiedtypes.append(tt)
+            logger.info("[Type Recommendation]Found recommendation for variable {}, recommended types: {}".format(name, TypeObject.DumpOriObjects(verifiedtypes)))
+            for tt in verifiedtypes:
                 tt.added = True
                 tt.startnodename = t.symbol
                 tt.startnodeorder = t.order
             verifiedtypes = TypeObject.removeRedundantTypes(verifiedtypes)
             t.types += verifiedtypes
             t.tag = 4
+        
+        if eval == True:
+            for a in rec["annotations"]:
+                nodes = []
+                if a["category"] == "return":
+                    for n in self.returnvaluenodes:
+                        if len(n.types) == 0 and len(n.ins) != 0:
+                            nodes.append(n)
+                elif a["category"] == "local":
+                    if a["name"] in self.symbolnodes:
+                        for n in self.symbolnodes[a["name"]]:
+                            if len(n.types) == 0:
+                                nodes.append(n)
+                if len(nodes) == 0:
+                    continue
+                rectypes = []
+                for i in range(0, topn):
+                    if i < len(a["type"]):
+                        rectypes += TypeObject.Str2Obj(a["type"][i])
+                if len(rectypes) == 0:
+                    continue
+                verifiedtypes = []
+                name = a["name"]
+                for tt in rectypes:
+                    if tt.category == 0:
+                        for ett in tt.elementtype:
+                            if ett.category != 0 and "." in ett.type and ett.type.split(".")[0] not in modules:
+                                self.replaceType(usertypes, ett, name, simmodel = simmodel)
+                        for ett in tt.keytype:
+                            if ett.category != 0 and "." in ett.type and ett.type.split(".")[0] not in modules:
+                                self.replaceType(usertypes, ett, name, simmodel = simmodel)
+                        for ett in tt.valuetype:
+                            if ett.category != 0 and "." in ett.type and ett.type.split(".")[0] not in modules:
+                                self.replaceType(usertypes, ett, name, simmodel = simmodel)
+                        verifiedtypes.append(tt)
+                    elif tt.category != 0 and tt.type.split(".")[0] not in modules:
+                        self.replaceType(usertypes, tt, name, simmodel = simmodel)
+                        verifiedtypes.append(tt)
+                    elif tt.category != 0 and (tt.type.split(".")[0] in modules or "." not in tt.type):
+                        verifiedtypes.append(tt)
+                logger.info("[Type Recommendation]Found recommendation for variable {}, recommended types: {}".format(a["name"], TypeObject.DumpOriObjects(verifiedtypes)))
+                for tt in verifiedtypes:
+                    tt.added = True
+                verifiedtypes = TypeObject.removeRedundantTypes(verifiedtypes)
+                for n in nodes:
+                    n.types += verifiedtypes
+                    n.tag = 4
+                
 
     def storeAttributeTypes(self):
         if self.name == "__init__":
@@ -2296,6 +2348,117 @@ class GlobalTypeGraph(object):
 
         #print message
         logger.info("[Static Inferece] Finished iterating TDG.")
+
+    def replaceType(self, usertypes, tt, nodename, simmodel = None):
+        return 0
+        if tt.category != 0 and tt.type not in usertypes and len(tt.type) != 0:
+            largest_score = 0
+            largest_type = None
+            typestr = tt.type
+            for ut in usertypes:
+                if simmodel:
+                    if typestr != "" and ut[0].split(".")[-1] != "":
+                        score = simmodel.get_similarity(typestr, ut[0].split(".")[-1])
+                    else:
+                        score = 0
+                else:
+                    score = Levenshtein.ratio(typestr, ut[0].split(".")[-1])
+                if score > largest_score:
+                    largest_score = score
+                    largest_type = ut[0]
+            nscore = 0
+            ntype = None
+            for ut in usertypes:
+                
+                if simmodel:
+                    if nodename != "" and ut[0].split(".")[-1] != "":
+                        score = simmodel.get_similarity(nodename, ut[0].split(".")[-1])
+                    else:
+                        score = 0
+                else:
+                    score = Levenshtein.ratio(nodename, ut[0].split(".")[-1])
+                if score > nscore:
+                    nscore = score
+                    ntype = ut[0]
+            if not simmodel:
+                if largest_type != None and largest_score + 0.1 >= nscore:
+                    logger.info("[Type Correction]Recommended type {} has been corrected to {} for variable {}".format(typestr, largest_type, nodename))
+                    tt.type = largest_type
+                    tt.category = 2
+                elif ntype != None and largest_score + 0.1 < nscore:
+                    logger.info("[Type Correction]Recommended type {} has been corrected to {} for variable {}".format(typestr, ntype, nodename))
+                    tt.type = ntype
+                    tt.category = 2
+            else:
+                if largest_type != None and largest_score > nscore:
+                    logger.info("[Type Correction]Recommended type {} has been corrected to {} for variable {}".format(typestr, largest_type, nodename))
+                    tt.type = largest_type
+                    tt.category = 2
+                elif ntype != None and largest_score <= nscore:
+                    logger.info("[Type Correction]Recommended type {} has been corrected to {} for variable {}".format(typestr, ntype, nodename))
+                    tt.type = ntype
+                    tt.category = 2
+
+
+    def recommendType(self, recommendations, usertypes, modules, topn, simmodel = None):
+        classname = "global"
+        funcname = "global"
+        if classname not in recommendations or funcname not in recommendations[classname]:
+            logger.error("[Type Recommendation]Cannot find the entry in recommendations for current TDG {}".format(self.name))
+            return None
+        rec = recommendations[classname][funcname]      
+        for a in rec["annotations"]:
+            nodes = []
+            if a["category"] == "local":
+                if a["name"] in self.globalsymbols:
+                    for n in self.globalsymbols[a["name"]]:
+                        if len(n.types) == 0:
+                            nodes.append(n)
+            if len(nodes) == 0:
+                continue
+            rectypes = []
+            for i in range(0, topn):
+                if i < len(a["type"]):
+                    rectypes += TypeObject.Str2Obj(a["type"][i])
+            if len(rectypes) == 0:
+                continue
+            verifiedtypes = []
+            name = a["name"]
+            for tt in rectypes:
+                if tt.category == 0:
+                    for ett in tt.elementtype:
+                        if ett.category != 0 and "." in ett.type and ett.type.split(".")[0] not in modules:
+                            self.replaceType(usertypes, ett, name, simmodel = simmodel)
+                    for ett in tt.keytype:
+                        if ett.category != 0 and "." in ett.type and ett.type.split(".")[0] not in modules:
+                            self.replaceType(usertypes, ett, name, simmodel = simmodel)
+                    for ett in tt.valuetype:
+                        if ett.category != 0 and "." in ett.type and ett.type.split(".")[0] not in modules:
+                            self.replaceType(usertypes, ett, name, simmodel = simmodel)
+                    verifiedtypes.append(tt)
+                elif tt.category != 0 and tt.type.split(".")[0] not in modules:
+                    self.replaceType(usertypes, tt, name, simmodel = simmodel)
+                    verifiedtypes.append(tt)
+                elif tt.category != 0 and (tt.type.split(".")[0] in modules or "." not in tt.type):
+                    verifiedtypes.append(tt)
+            logger.info("[Type Recommendation]Found recommendation for variable {}, recommended types: {}".format(a["name"], TypeObject.DumpOriObjects(verifiedtypes)))
+            for tt in verifiedtypes:
+                tt.added = True
+            verifiedtypes = TypeObject.removeRedundantTypes(verifiedtypes)
+            for n in nodes:
+                n.types += verifiedtypes
+                n.tag = 4
+
+
+    def simplifyTypes(self):
+        for n in self.globalnodes:
+            if isinstance(n, BranchNode):
+                types = []
+                types.append(TypeObject.removeInclusiveTypes(n.types[0]))
+                types.append(TypeObject.removeInclusiveTypes(n.types[1]))
+                n.types = types
+            else:
+                n.types = TypeObject.removeInclusiveTypes(n.types)
 
 
     def returntypes(self):

@@ -515,7 +515,7 @@ errors = [
 "FileExistsError", "FileNotFoundError", "InterruptedError", "IsADirectoryError", "NotADirectoryError", "PermissionError", "ProcessLookupError", "TimeoutError"
 ]
 
-#The standard errors are extracted from https://docs.python.org/zh-cn/3/library/exceptions.html
+#The standard warnings are extracted from https://docs.python.org/zh-cn/3/library/exceptions.html
 warnings = [
 "Warning", "DeprecationWarning", "PendingDeprecationWarning", "RuntimeWarning", "SyntaxWarning", "UserWarning", "FutureWarning", "ImportWarning", "UnicodeWarning",
 "BytesWarning", "EncodingWarning", "ResourceWarning"
