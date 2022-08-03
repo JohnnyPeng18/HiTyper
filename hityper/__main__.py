@@ -228,7 +228,7 @@ def infertypes(args):
 def evaluate(args):
     outputrepo = args.output_directory if args.output_directory else "."
     setuplogs(outputrepo)
-    predictions = test_multiplefile(args.groundtruth, args.classified_groundtruth, args.usertype, recfile = args.recommendations if args.recommendations else None, recmodel = args.type4py, topn = args.topn, prefix = args.file_prefix, eval = False)
+    predictions = test_multiplefile(args.groundtruth, args.classified_groundtruth, args.usertype, recfile = args.recommendations if args.recommendations else None, recmodel = args.type4py, topn = args.topn, prefix = args.file_prefix, eval = True)
     with open(outputrepo + "/" + args.groundtruth.replace("/", "_").replace(".json", "_INFERREDTYPES.json"), "w", encoding = "utf-8") as of:
         of.write(json.dumps(predictions, sort_keys=True, indent=4, separators=(',', ': ')))
     logger.info("Saved predictions to {}".format(outputrepo + "/" + args.groundtruth.replace("/", "_").replace(".json", "_INFERREDTYPES.json")))

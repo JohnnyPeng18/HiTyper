@@ -1354,7 +1354,7 @@ class TypeGraph(object):
                     tt.category = 2
             
 
-    def recommendType(self, typeslots, recommendations, usertypes, modules, topn, simmodel = None, eval = True):
+    def recommendType(self, typeslots, recommendations, usertypes, modules, topn, simmodel = None, eval = False):
         classname = self.name.split("@")[-1]
         funcname = "{}.{}".format(classname, self.name.split("@")[0]) if classname != "global" else self.name.split("@")[0]
         if "," in classname:
