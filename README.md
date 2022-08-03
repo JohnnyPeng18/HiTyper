@@ -220,7 +220,7 @@ hityper eval -g ManyTypes4Py_gts_test_verified.json -c ManyTypes4Py_gts_test_ver
 ```
 
 We do not show the performance of HiTyper integrating different DL models here since there are many factors impacting the performance of DL models such as datasets, hyper-parameters, etc. Please align the performance by yourself before utilizing recommendations from DL models.
- 
+
 What's more, we are currently working on building a DL model that's more suitable for HiTyper. Stay tuned!
 
 **Other datasets:**
@@ -245,13 +245,20 @@ If you want the exact experiment results stated in the paper, please download th
 If you use HiTyper in your research, please cite us:
 
 ```latex
-@article{peng2022hityper,
-  author    = {Yun Peng and Cuiyun Gao and Zongjie Li and Bowei Gao and David Lo and Qirun Zhang and Michael R. Lyu},
-  title     = {Static Inference Meets Deep Learning: A Hybrid Type Inference Approach for Python},
-  journal   = {CoRR},
-  volume    = {abs/2105.03595},
-  year      = {2022},
-  url       = {https://arxiv.org/abs/2105.03595}
+@inproceedings{peng22hityper,
+author = {Peng, Yun and Gao, Cuiyun and Li, Zongjie and Gao, Bowei and Lo, David and Zhang, Qirun and Lyu, Michael},
+title = {Static Inference Meets Deep Learning: A Hybrid Type Inference Approach for Python},
+year = {2022},
+isbn = {9781450392211},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3510003.3510038},
+doi = {10.1145/3510003.3510038},
+booktitle = {Proceedings of the 44th International Conference on Software Engineering},
+pages = {2019–2030},
+numpages = {12},
+location = {Pittsburgh, Pennsylvania},
+series = {ICSE '22}
 }
 ```
 
