@@ -5,6 +5,14 @@
 
 This is the tool released in the ICSE 2022 paper ["Static Inference Meets Deep Learning: A Hybrid Type InferenceApproach for Python"](https://arxiv.org/abs/2105.03595).
 
+## Updates
+
+**8 Aug, 2022:** 
+
+We add a new command `hityper preprocess` to transform the json files in ManyTypes4py datasets into the `groundtruth.json` and `classified_groundtruth.json` files HiTyper needs under `hityper eval`. 
+
+We also add a new option `-g` in `hityper findusertype` to collect the `usertypes.json` HiTyper needs under `hityper eval` according to the groundtruth file `groundtruth.json`.
+
 ## Workflow
 
 HiTyper is a hybrid type inference tool built upon Type Dependency Graph (TDG), the typical workflow of it is as follows:
@@ -59,6 +67,9 @@ optional arguments:
   -s SOURCE, --source SOURCE
                         Path to a Python source file
   -p REPO, --repo REPO  Path to a Python project
+  -g GROUNDTRUTH, --groundtruth GROUNDTRUTH
+                        Path to a ground truth file
+  -c CORE, --core CORE  Number of cores to use when collecting user-defined types
   -v, --validate        Validate the imported user-defined types by finding their implementations
   -d OUTPUT_DIRECTORY, --output_directory OUTPUT_DIRECTORY
                         Path to the store the usertypes
@@ -71,6 +82,22 @@ hityper findusertype -s python_project_repo/test.py -p python_project_repo -v -d
 ```
 
 *This command generates the user-defined types collected by HiTyper and save them as `.json` files under `outputs/` folder.*
+
+**[Newly Added 6 Aug]**
+
+We add a option to automatically generate all user-defined type files that a ground truth dataset needs to evaluate HiTyper.
+
+**Example:**
+
+```sh
+hityper findusertype -g groundtruth.json -p repo_prefix -c 60 -d outputs
+```
+
+For the `groundtruth.json`, you need to use the same file in `hityper eval` command or generate it by using `hityper preprocess` command.
+
+`-p repo_prefix` is an optional argument here, if the filenames in `groundtruth.json` are the absolute paths then you do not need to specify `-p`, otherwise use `-p` to indicate which folder the source files are stored.
+
+The collection of all user-defined types for a large dataset is quite slow, try to specify a large number of cores used to make this process faster.
 
 ### gentdg
 
@@ -187,6 +214,31 @@ hityper eval -g groundtruth.json -c detailed_groundtruth.json -u usertypes.json 
 Before evaluating Hityper using this command, please use `hityper findusertype` command to generate `usertypes.json`. This typically takes several hours, depending on the number of files.
 
 This option is designed only for future research evaluation.
+
+### Preprocess
+
+```sh
+usage: hityper preprocess [-h] -p JSON_REPO [-d OUTPUT_DIRECTORY]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -p JSON_REPO, --json_repo JSON_REPO
+                        Path to the repo of JSON files
+  -d OUTPUT_DIRECTORY, --output_directory OUTPUT_DIRECTORY
+                        Path to the transformed datasets
+```
+
+**Example:**
+
+```sh
+hityper preprocess -p ManyTypes4PyDataset/processed_projects_complete -d outputs
+```
+
+*This command transforms the json files in ManyTypes4Py datasets into the `groundtruth.json` and `detailed_groundtruth.json` files that required by the `hityper eval` command.*
+
+This command is to facilitate the researchers that use ManyTypes4Py dataset and want to evaluate HiTyper in it.
+
+If you want to run HiTyper in other datasets, please follow the same logic in `transformDataset` function of  `Hityper/hityper/utils.py` to write a script.
 
 ## Experiment Results
 
