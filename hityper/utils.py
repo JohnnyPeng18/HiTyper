@@ -12,6 +12,8 @@ import json
 from gensim.models import Word2Vec
 import numpy as np
 from transformers import RobertaTokenizer
+from multiprocessing.dummy import Pool as ThreadPool
+from func_timeout import func_set_timeout, FunctionTimedOut
 
 
 logger.name = __name__
@@ -404,3 +406,244 @@ def test_onefile(gtfile, filename, gts = None, gentg = False, usertypes = None, 
     logger.debug(json.dumps(gt, sort_keys=True, indent=4, separators=(',', ': ')))
     logger.debug(json.dumps(str_results, sort_keys=True, indent=4, separators=(',', ': ')))
     return num, str_results
+
+
+
+def transformDataset(jsonrepo, outputdir = None):
+    files = os.listdir(jsonrepo)
+    jsonfiles = []
+    for f in files:
+        if f.endswith(".json"):
+            jsonfiles.append(f)
+
+    logger.info("Find {} json files.".format(len(jsonfiles)))
+
+    gts = {}
+
+    detailed_gts = {"user-defined": {}, "generic": {}, "simple": {}}
+    
+    for f in tqdm(jsonfiles, desc = "Processing JSON files"):
+        data = json.loads(open(os.path.join(jsonrepo, f)).read())
+        for m in data:
+            for f in data[m]["src_files"]:
+                if f not in gts:
+                    gts[f] = {}
+                for index, v in enumerate(list(data[m]["src_files"][f]["variables"].keys())):
+                    name = list(data[m]["src_files"][f]["mod_var_occur"].keys())[index]
+                    gttype = data[m]["src_files"][f]["variables"][v]
+                    scope = "local"
+                    annotation = {"category": scope, "type": gttype, "name": name}
+                    if gttype not in ["", "typing.Any"]:
+                        cat = TypeObject.checkType(gttype)
+                        if cat != None:
+                            if "global" not in gts[f]:
+                                gts[f]["global"] = {}
+                            if "global" not in gts[f]["global"]:
+                                gts[f]["global"]["global"] = {"annotations": []}
+                            if f not in detailed_gts[cat]:
+                                detailed_gts[cat][f] = {}
+                            if "global" not in detailed_gts[cat][f]:
+                                detailed_gts[cat][f]["global"] = {}
+                            if "global" not in detailed_gts[cat][f]["global"]:
+                                detailed_gts[cat][f]["global"]["global"] = {"annotations": []}
+                            detailed_gts[cat][f]["global"]["global"]["annotations"].append(annotation)
+                            gts[f]["global"]["global"]["annotations"].append(annotation)
+                for func in data[m]["src_files"][f]["funcs"]:
+                    funcname = func["q_name"]
+                    for index, p in enumerate(list(func["params"].keys())):
+                        name = list(func["params_occur"].keys())[index]
+                        gttype = func["params"][p]
+                        scope = "arg"
+                        annotation = {"category": scope, "type": gttype, "name": name}
+                        if gttype not in ["", "typing.Any"]:
+                            cat = TypeObject.checkType(gttype)
+                            if cat != None:
+                                if "global" not in gts[f]:
+                                    gts[f]["global"] = {}
+                                if funcname not in gts[f]["global"]:
+                                    gts[f]["global"][funcname] = {"annotations": []}
+                                if f not in detailed_gts[cat]:
+                                    detailed_gts[cat][f] = {}
+                                if "global" not in detailed_gts[cat][f]:
+                                    detailed_gts[cat][f]["global"] = {}
+                                if funcname not in detailed_gts[cat][f]["global"]:
+                                    detailed_gts[cat][f]["global"][funcname] = {"annotations": []}
+                                detailed_gts[cat][f]["global"][funcname]["annotations"].append(annotation)
+                                gts[f]["global"][funcname]["annotations"].append(annotation)
+                    for index, v in enumerate(list(func["variables"].keys())):
+                        name = list(func["fn_var_occur"].keys())[index]
+                        gttype = func["variables"][v]
+                        scope = "local"
+                        annotation = {"category": scope, "type": gttype, "name": name}
+                        if gttype not in ["", "typing.Any"]:
+                            cat = TypeObject.checkType(gttype)
+                            if cat != None:
+                                if "global" not in gts[f]:
+                                    gts[f]["global"] = {}
+                                if funcname not in gts[f]["global"]:
+                                    gts[f]["global"][funcname] = {"annotations": []}
+                                if f not in detailed_gts[cat]:
+                                    detailed_gts[cat][f] = {}
+                                if "global" not in detailed_gts[cat][f]:
+                                    detailed_gts[cat][f]["global"] = {}
+                                if funcname not in detailed_gts[cat][f]["global"]:
+                                    detailed_gts[cat][f]["global"][funcname] = {"annotations": []}
+                                detailed_gts[cat][f]["global"][funcname]["annotations"].append(annotation)
+                                gts[f]["global"][funcname]["annotations"].append(annotation)
+                    if func["ret_type"] not in ["", "typing.Any"]:
+                        name = funcname
+                        scope = "return"
+                        gttype = func["ret_type"]
+                        annotation = {"category": scope, "type": gttype, "name": name}
+                        cat = TypeObject.checkType(gttype)
+                        if cat != None:
+                            if "global" not in gts[f]:
+                                gts[f]["global"] = {}
+                            if funcname not in gts[f]["global"]:
+                                gts[f]["global"][funcname] = {"annotations": []}
+                            if f not in detailed_gts[cat]:
+                                detailed_gts[cat][f] = {}
+                            if "global" not in detailed_gts[cat][f]:
+                                detailed_gts[cat][f]["global"] = {}
+                            if funcname not in detailed_gts[cat][f]["global"]:
+                                detailed_gts[cat][f]["global"][funcname] = {"annotations": []}
+                            detailed_gts[cat][f]["global"][funcname]["annotations"].append(annotation)
+                            gts[f]["global"][funcname]["annotations"].append(annotation)
+                for c in data[m]["src_files"][f]["classes"]:
+                    classname = c["q_name"]
+                    for func in c["funcs"]:
+                        funcname = func["q_name"].split(".")[-1]
+                        for index, p in enumerate(list(func["params"].keys())):
+                            name = list(func["params_occur"].keys())[index]
+                            gttype = func["params"][p]
+                            scope = "arg"
+                            annotation = {"category": scope, "type": gttype, "name": name}
+                            if gttype not in ["", "typing.Any"]:
+                                cat = TypeObject.checkType(gttype)
+                                if cat != None:
+                                    if classname not in gts[f]:
+                                        gts[f][classname] = {}
+                                    if funcname not in gts[f][classname]:
+                                        gts[f][classname][funcname] = {"annotations": []}
+                                    if f not in detailed_gts[cat]:
+                                        detailed_gts[cat][f] = {}
+                                    if classname not in detailed_gts[cat][f]:
+                                        detailed_gts[cat][f][classname] = {}
+                                    if funcname not in detailed_gts[cat][f][classname]:
+                                        detailed_gts[cat][f][classname][funcname] = {"annotations": []}
+                                    detailed_gts[cat][f][classname][funcname]["annotations"].append(annotation)
+                                    gts[f][classname][funcname]["annotations"].append(annotation)
+                        for index, v in enumerate(list(func["variables"].keys())):
+                            name = list(func["fn_var_occur"].keys())[index]
+                            gttype = func["variables"][v]
+                            scope = "local"
+                            annotation = {"category": scope, "type": gttype, "name": name}
+                            if gttype not in ["", "typing.Any"]:
+                                cat = TypeObject.checkType(gttype)
+                                if cat != None:
+                                    if classname not in gts[f]:
+                                        gts[f][classname] = {}
+                                    if funcname not in gts[f][classname]:
+                                        gts[f][classname][funcname] = {"annotations": []}
+                                    if f not in detailed_gts[cat]:
+                                        detailed_gts[cat][f] = {}
+                                    if classname not in detailed_gts[cat][f]:
+                                        detailed_gts[cat][f][classname] = {}
+                                    if funcname not in detailed_gts[cat][f][classname]:
+                                        detailed_gts[cat][f][classname][funcname] = {"annotations": []}
+                                    detailed_gts[cat][f][classname][funcname]["annotations"].append(annotation)
+                                    gts[f][classname][funcname]["annotations"].append(annotation)
+                        if func["ret_type"] not in ["", "typing.Any"]:
+                            name = funcname
+                            scope = "return"
+                            gttype = func["ret_type"]
+                            annotation = {"category": scope, "type": gttype, "name": name}
+                            cat = TypeObject.checkType(gttype)
+                            if cat != None:
+                                if classname not in gts[f]:
+                                    gts[f][classname] = {}
+                                if funcname not in gts[f][classname]:
+                                    gts[f][classname][funcname] = {"annotations": []}
+                                if f not in detailed_gts[cat]:
+                                    detailed_gts[cat][f] = {}
+                                if classname not in detailed_gts[cat][f]:
+                                    detailed_gts[cat][f][classname] = {}
+                                if funcname not in detailed_gts[cat][f][classname]:
+                                    detailed_gts[cat][f][classname][funcname] = {"annotations": []}
+                                detailed_gts[cat][f][classname][funcname]["annotations"].append(annotation)
+                                gts[f][classname][funcname]["annotations"].append(annotation)
+    
+    output_gtfile = os.path.join(outputdir, "GROUNDTRUTH.json") if outputdir != None else "GROUNDTRUTH.json"
+    output_detailedgtfile = os.path.join(outputdir, "CLASSIFIED_GROUNDTRUTH.json") if outputdir != None else "CLASSIFIED_GROUNDTRUTH.json"
+
+    with open(output_gtfile, "w", encoding = "utf-8") as of:
+        of.write(json.dumps(gts, sort_keys=True, indent=4, separators=(',', ': ')))
+    
+    with open(output_detailedgtfile, "w", encoding = "utf-8") as of:
+        of.write(json.dumps(detailed_gts, sort_keys=True, indent=4, separators=(',', ': ')))
+
+    return output_gtfile, output_detailedgtfile
+
+
+def collectusertype(arg):
+    filerepo = arg[0]
+    f = arg[1]
+    filepath = os.path.join(filerepo, f) if filerepo != None else f
+    projpath =  os.path.join(filerepo, "/".join(f.split("/")[0:3])) if filerepo != None else "/".join(f.split("/")[0:3])
+    if not os.path.isfile(filepath):
+        logger.error("Cannot find source file {}".format(filepath))
+        return f, None
+    try:
+        source = open(filepath, "r").read()
+        root = ast.parse(source)
+        usertypeanalyzer = UsertypeFinder(filepath, projpath, False)
+        usertypes, subtypes = usertypeanalyzer.invoke(root)
+    except FunctionTimedOut as e:
+        logger.warning("Timeout! Switch to NOT validate imported types!")
+        try:
+            source = open(filepath, "r").read()
+            root = ast.parse(source)
+            usertypeanalyzer = analyzer(filepath, projpath, False)
+            usertypes, subtypes = usertypeanalyzer.invoke(root)
+        except FunctionTimedOut as e:
+            logger.warning("Timeout! Skipped...")
+            return f, None
+        except Exception as e:
+            logger.warning("User-defined type extraction failed! Reason: ", e)
+            traceback.print_exc()
+            return f, None
+    except Exception as e:
+        logger.warning("User-defined type extraction failed! Reason: ", e)
+        traceback.print_exc()
+        return f, None
+    return f, usertypes
+
+def collectUserTypeset(datafile, filerepo = None, cores = 8, outputdir = None):
+    with open(datafile, "r", encoding = "utf-8") as df:
+        jsondata = json.loads(df.read())
+    
+    if isinstance(jsondata, dict):
+        fs = list(jsondata.keys())
+    else:
+        fs = jsondata
+
+    items = []
+    for i, f in enumerate(fs):
+        items.append((filerepo, f, i))
+    
+    pool = ThreadPool(cores)
+    results = pool.map(collectusertype, items)
+    pool.close()
+    pool.join()
+
+    data = {}
+
+
+    for i in results:
+        if i[1] != None:
+            data[i[0]] = i[1]
+    
+    outputfile = os.path.join(outputdir, "USERTYPES.json") if outputdir != None else "USERTYPES.json"
+    with open(outputfile, "w", encoding = "utf-8") as jf:
+        jf.write(json.dumps(data, sort_keys=True, indent=4, separators=(',', ': ')))
+    return outputfile

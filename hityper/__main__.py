@@ -6,7 +6,7 @@ import json
 import traceback
 from hityper.tdg_generator import TDGGenerator
 from hityper.usertype_finder import UsertypeFinder
-from hityper.utils import formatUserTypes, getRecommendations, test_multiplefile
+from hityper.utils import formatUserTypes, getRecommendations, test_multiplefile, transformDataset, collectUserTypeset
 from hityper.config import config
 from hityper import logger
 from hityper.utils import detectChange, SimModel
@@ -26,9 +26,15 @@ def setuplogs(repo):
 
 
 def findusertype(args):
-    if args.repo:
-        outputrepo = args.output_directory if args.output_directory else "."
-        setuplogs(outputrepo)
+    outputrepo = args.output_directory if args.output_directory else "."
+    setuplogs(outputrepo)
+    if args.groundtruth:
+        if args.repo:
+            outfile = collectUserTypeset(args.groundtruth, filerepo = args.repo, cores = args.core, outputdir = outputrepo)
+        else:
+            outfile = collectUserTypeset(args.groundtruth, cores = args.core, outputdir = outputrepo)
+        logger.info("Saved collected user-defined types to {}.".format(outfile))
+    elif args.repo:
         if args.source:
             try:
                 source = open(args.source, "r", encoding = "utf-8").read()
@@ -234,6 +240,13 @@ def evaluate(args):
     logger.info("Saved predictions to {}".format(outputrepo + "/" + args.groundtruth.replace("/", "_").replace(".json", "_INFERREDTYPES.json")))
 
 
+def preprocess(args):
+    outputrepo = args.output_directory if args.output_directory else "."
+    setuplogs(outputrepo)
+    outputfiles = transformDataset(args.json_repo, outputdir = outputrepo)
+    logger.info("Saved transformed datasets to {} and {}".format(outputfiles[0], outputfiles[1]))
+
+
 
 
 
@@ -243,7 +256,9 @@ def main():
 
     usertype_parser = sub_parsers.add_parser('findusertype')
     usertype_parser.add_argument('-s', '--source', required = False, type=str, help = "Path to a Python source file")
-    usertype_parser.add_argument('-p', '--repo', required = True, type=str, help = "Path to a Python project")
+    usertype_parser.add_argument('-p', '--repo', required = False, type=str, help = "Path to a Python project")
+    usertype_parser.add_argument('-g', '--groundtruth', required = False, type=str, help = "Path to a ground truth file")
+    usertype_parser.add_argument('-c', "--core", default = 8, type=int, help = "Number of cores to use when collecting user-defined types")
     usertype_parser.add_argument("-v", "--validate", default = True, action="store_true", help = "Validate the imported user-defined types by finding their implementations")
     usertype_parser.add_argument('-d', "--output_directory", required = False, type=str, help = "Path to the store the usertypes")
     usertype_parser.set_defaults(func = findusertype)
@@ -281,6 +296,12 @@ def main():
     eval_parser.add_argument('-d', "--output_directory", required = False, type=str, help = "Path to the inferred results")
     eval_parser.add_argument('-p', "--file_prefix", required = False, type=str, help = "Path prefix to the files in ground truth dataset")
     eval_parser.set_defaults(func = evaluate)
+
+    preprocess_parser = sub_parsers.add_parser('preprocess')
+    preprocess_parser.add_argument("-p", '--json_repo', required = True, type = str, help = "Path to the repo of JSON files")
+    preprocess_parser.add_argument('-d', "--output_directory", required = False, type=str, help = "Path to the transformed datasets")
+    preprocess_parser.set_defaults(func = preprocess)
+
 
 
     args = arg_parser.parse_args()
