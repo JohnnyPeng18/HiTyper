@@ -9,7 +9,7 @@ This is the tool released in the ICSE 2022 paper ["Static Inference Meets Deep L
 
 **8 Aug, 2022:** 
 
-We add a new command `hityper preprocess` to transform the json files in ManyTypes4py datasets into the `groundtruth.json` and `classified_groundtruth.json` files HiTyper needs under `hityper eval`. 
+We add a new command `hityper preprocess` to transform the json files in ManyTypes4py datasets into the `groundtruth.json` and `detailed_groundtruth.json` files HiTyper needs under `hityper eval`. 
 
 We also add a new option `-g` in `hityper findusertype` to collect the `usertypes.json` HiTyper needs under `hityper eval` according to the groundtruth file `groundtruth.json`.
 
@@ -94,6 +94,8 @@ We add a option to automatically generate all user-defined type files that a gro
 ```sh
 hityper findusertype -g groundtruth.json -p repo_prefix -c 60 -d outputs
 ```
+
+*This command generates the user-defined types in files indicates by `groundtruth.json` collected by HiTyper and save them as `.json` files under `outputs/` folder.*
 
 For the `groundtruth.json`, you need to use the same file in `hityper eval` command or generate it by using `hityper preprocess` command.
 
@@ -242,7 +244,7 @@ hityper preprocess -p ManyTypes4PyDataset/processed_projects_complete -d outputs
 
 This command is to facilitate the researchers that use ManyTypes4Py dataset and want to evaluate HiTyper in it.
 
-If you want to run HiTyper in other datasets, please follow the same logic in `transformDataset` function of  `Hityper/hityper/utils.py` to write a script.
+If you want to run HiTyper in other datasets, please follow the same logic in `transformDataset` function of  `HiTyper/hityper/utils.py` to write a script.
 
 ## Experiment Results
 
