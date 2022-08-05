@@ -75,7 +75,7 @@ optional arguments:
                         Path to the store the usertypes
 ```
 
-**Example:**
+**Example of collecting user-defined types in source files:**
 
 ```sh
 hityper findusertype -s python_project_repo/test.py -p python_project_repo -v -d outputs
@@ -83,11 +83,13 @@ hityper findusertype -s python_project_repo/test.py -p python_project_repo -v -d
 
 *This command generates the user-defined types collected by HiTyper and save them as `.json` files under `outputs/` folder.*
 
+`-p` option is required here, if you do not specify `-s`, the HiTyper will collect user-defined types in all files of repo specified by `-p`.
+
 **[Newly Added 6 Aug]**
 
 We add a option to automatically generate all user-defined type files that a ground truth dataset needs to evaluate HiTyper.
 
-**Example:**
+**Example of collecting user-defined types in groundtruth datasets:**
 
 ```sh
 hityper findusertype -g groundtruth.json -p repo_prefix -c 60 -d outputs
