@@ -60,7 +60,7 @@ Currently HiTyper has the following command line options: (Some important settin
 ### findusertype
 
 ```sh
-hityper findusertype [-h] [-s SOURCE] -p REPO [-v] [-d OUTPUT_DIRECTORY]
+usage: hityper findusertype [-h] [-s SOURCE] [-p REPO] [-g GROUNDTRUTH] [-c CORE] [-v] [-d OUTPUT_DIRECTORY]
 
 optional arguments:
   -h, --help            show this help message and exit
