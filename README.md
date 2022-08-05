@@ -182,7 +182,9 @@ https://type4py.com/api/predict?tc=0
 http://localhost:PORT/api/predict?tc=0
 ```
 
-**HiTyper's performance deeply depends on the maximum performance of recommendation model (especially the performance to predict argument types). Type inference of HiTyper can fail if the recommendation model cannot give a valid prediction while static inference does not work!!!** 
+According to our experiments, the Type4Py model has much lower performance by quering the API above, you are suggested to train the model locally and generate the recommendation file which can be passed to `-m`.
+
+**Note: HiTyper's performance deeply depends on the maximum performance of recommendation model (especially the performance to predict argument types). Type inference of HiTyper can fail if the recommendation model cannot give a valid prediction while static inference does not work!** 
 
 If you want to use another more powerful model, you write code like `__main__.py` to adapt HiTyper to your DL model.
 
