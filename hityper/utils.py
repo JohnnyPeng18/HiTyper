@@ -609,11 +609,11 @@ def collectusertype(arg):
             logger.warning("Timeout! Skipped...")
             return f, None
         except Exception as e:
-            logger.warning("User-defined type extraction failed! Reason: ", e)
+            logger.warning("User-defined type extraction failed! Reason: {}".format(e))
             traceback.print_exc()
             return f, None
     except Exception as e:
-        logger.warning("User-defined type extraction failed! Reason: ", e)
+        logger.warning("User-defined type extraction failed! Reason: {}".format(e))
         traceback.print_exc()
         return f, None
     return f, usertypes
