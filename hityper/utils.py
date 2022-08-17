@@ -596,14 +596,14 @@ def collectusertype(arg):
     try:
         source = open(filepath, "r").read()
         root = ast.parse(source)
-        usertypeanalyzer = UsertypeFinder(filepath, projpath, False)
+        usertypeanalyzer = UsertypeFinder(filepath, projpath, True)
         usertypes, subtypes = usertypeanalyzer.invoke(root)
     except FunctionTimedOut as e:
         logger.warning("Timeout! Switch to NOT validate imported types!")
         try:
             source = open(filepath, "r").read()
             root = ast.parse(source)
-            usertypeanalyzer = analyzer(filepath, projpath, False)
+            usertypeanalyzer = UsertypeFinder(filepath, projpath, False)
             usertypes, subtypes = usertypeanalyzer.invoke(root)
         except FunctionTimedOut as e:
             logger.warning("Timeout! Skipped...")
