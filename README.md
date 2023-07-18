@@ -33,11 +33,21 @@ The combination of static inference and deep learning shall complement each othe
 
 ## Install
 
+1. Install HiTyper from source
+
 To use HiTyper on your own computer, you can build from source: (If you need to modify the source code of HiTyper, please use this method and re-run the `pip install .` after modification each time)
 
 ```sh
 git clone https://github.com/JohnnyPeng18/HiTyper.git && cd HiTyper
 pip install .
+```
+
+2. Install HiTyper using `pip`
+
+You can install the latest version of HiTyper by using the following command:
+
+```sh
+pip install hityper
 ```
 
 **Requirements:**

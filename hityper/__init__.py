@@ -12,4 +12,4 @@ formatter = logging.Formatter('%(asctime)s[%(levelname)s][%(filename)s:%(lineno)
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
