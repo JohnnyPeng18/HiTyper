@@ -125,7 +125,7 @@ class TypeObject(object):
         if l.category != 0 and r.category != 0:
             if l.type == r.type:
                 return True
-            elif l.category == r.category and l.category == 2 and (l.type.split(".")[-1] == r.type.split(".")[-1]):
+            elif l.category == r.category and l.category == 2 and (l.type.split(".")[-1].lower() == r.type.split(".")[-1].lower()):
                 return True
             else:
                 return False

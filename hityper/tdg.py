@@ -262,7 +262,7 @@ class TypeGenNode(GraphBaseNode):
         #for Attribute AST nodes
         self.attr = attr
         self.types = []
-        self.splitindex = 0
+        self.splitindex = splitindex
         self.rejinputtypes = []
 
     def setFunc(self, func):
