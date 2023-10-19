@@ -179,9 +179,9 @@ def infertypes(args):
                         tg.passTypes(debug = False)
                         tg.simplifyTypes()
                     str_results[tg.name] = tg.dumptypes()
-                    with open(outputrepo + "/" + args.source.replace("/", "_").replace(".py", "_INFERREDTYPES.json"), "w", encoding = "utf-8") as of:
-                        of.write(json.dumps(str_results, sort_keys=True, indent=4, separators=(',', ': ')))
-                    logger.info("Saved results to {}".format(outputrepo + "/" + args.source.replace("/", "_").replace(".py", "_INFERREDTYPES.json")))
+                with open(outputrepo + "/" + args.source.replace("/", "_").replace(".py", "_INFERREDTYPES.json"), "w", encoding = "utf-8") as of:
+                    of.write(json.dumps(str_results, sort_keys=True, indent=4, separators=(',', ': ')))
+                logger.info("Saved results to {}".format(outputrepo + "/" + args.source.replace("/", "_").replace(".py", "_INFERREDTYPES.json")))
             except Exception as e:
                 traceback.print_exc()
                 logger.error("Type inference failed for file {}, reason: {}".format(args.source, e))
